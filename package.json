@@ -1,8 +1,8 @@
 {
-  "name": "craft-agent",
+  "name": "rowl",
   "version": "0.8.9",
   "license": "Apache-2.0",
-  "description": "Claude Code-like agent for Craft documents",
+  "description": "Rowl — memory-first coding agent. Fork of craft-agents-oss.",
   "type": "module",
   "private": true,
   "trustedDependencies": [
