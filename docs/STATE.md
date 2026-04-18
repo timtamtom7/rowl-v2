@@ -1,7 +1,7 @@
 # Rowl — Current State (Plans Front Door)
 
-**Last updated:** 2026-04-18 (sub-project #0 shipped)
-**Current focus:** Sub-project #1 — Memory-first agent (planning phase, not started)
+**Last updated:** 2026-04-18 (sub-project #1 Phase 1 spec approved)
+**Current focus:** Sub-project #1 Phase 1 — Always-on workspace memory blocks. Spec complete; implementation plan next.
 
 > **If you are a new session resuming Rowl work, read this file FIRST.**
 > It orients you in ~60 seconds and tells you what to read next.
@@ -27,11 +27,12 @@ All four are license-compatible (MIT / Apache-2.0). Reference clones live at `/U
 
 ## Where we are right now
 
-- **Sub-project:** #1 — Memory-first agent (not started)
-- **Phase:** pre-planning — need to brainstorm scope against craft-agents' session/agent model
-- **Plan:** not written yet
+- **Sub-project:** #1 — Memory-first agent, Phase 1 (always-on workspace memory blocks)
+- **Phase status:** spec written + approved. Ready for implementation plan.
+- **Spec:** `docs/plans/rowl-memory-first/SPEC.md`
+- **Plan:** not written yet. Next action: invoke `superpowers:writing-plans` to produce `docs/plans/rowl-memory-first/PHASE-1-PLAN.md`.
 - **Branch:** main
-- **Blocker:** none. Next action: use `superpowers:brainstorming` skill to decompose sub-project #1 against the new codebase (craft-agents base, not the old t3code base). Then `superpowers:writing-plans` to produce the first phase plan.
+- **Blocker:** none.
 
 ## Last session handoff
 
@@ -62,7 +63,7 @@ These existed at fork time; we accepted them rather than pre-fixing upstream tec
 | # | Initiative | Status | Why this order |
 |---|-----------|--------|----------------|
 | 0 | Bootstrap (fork craft-agents → rebrand → docs convention) | shipped | Must establish the base before any features. |
-| 1 | Memory-first agent (Letta pattern port) | not-started | Foundational. Every subsequent feature behaves differently with memory. |
+| 1 | Memory-first agent (Letta pattern port) | Phase 1 spec approved | Foundational. Every subsequent feature behaves differently with memory. |
 | 2 | Organizing layer (Paperclip-style goals/issues/docs) | not-started | Gives "why are we doing this" structure on top of memory. |
 | 3 | t3code cherry-picks (checkpoints, worktrees, stacked PRs) | not-started | High-value, self-contained adds. |
 | 4 | Research/review UX polish | not-started | Surfaces #2's data model as real research workflow UI. |
