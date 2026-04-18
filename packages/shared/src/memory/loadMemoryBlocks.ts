@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import matter from 'gray-matter';
 import type { MemoryBlock, MemoryBlockFrontmatter } from './types.ts';
@@ -16,11 +16,17 @@ import { getMemoryDir } from './paths.ts';
  */
 export function loadMemoryBlocks(workspaceRootPath: string): MemoryBlock[] {
   const dir = getMemoryDir(workspaceRootPath);
-  if (!existsSync(dir)) {
+
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT') return [];
+    console.warn(`[memory] Skipped directory ${dir}: read failed (${(err as Error).message})`);
     return [];
   }
 
-  const entries = readdirSync(dir);
   const blocks: MemoryBlock[] = [];
 
   for (const entry of entries) {

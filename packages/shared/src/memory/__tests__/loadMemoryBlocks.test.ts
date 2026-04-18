@@ -161,4 +161,13 @@ describe('loadMemoryBlocks', () => {
     expect(blocks).toHaveLength(1);
     expect(blocks[0]!.content).toBe('');
   });
+
+  it('returns [] (with warning) when memory path exists but is a file, not a directory', () => {
+    const { writeFileSync } = require('fs');
+    const memPath = join(workspaceRoot, 'memory');
+    writeFileSync(memPath, 'not a directory');
+
+    const blocks = loadMemoryBlocks(workspaceRoot);
+    expect(blocks).toEqual([]);
+  });
 });
