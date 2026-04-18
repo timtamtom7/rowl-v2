@@ -1,7 +1,7 @@
 # Rowl — Current State (Plans Front Door)
 
-**Last updated:** 2026-04-18 (sub-project #1 Phase 1 spec approved)
-**Current focus:** Sub-project #1 Phase 1 — Always-on workspace memory blocks. Spec complete; implementation plan next.
+**Last updated:** 2026-04-18 (sub-project #1 Phase 1 SHIPPED)
+**Current focus:** Sub-project #1 Phase 1 — SHIPPED. Ready to scope Phase 2 (agent-editable memory tools: `core_memory_replace` / `core_memory_append`).
 
 > **If you are a new session resuming Rowl work, read this file FIRST.**
 > It orients you in ~60 seconds and tells you what to read next.
@@ -28,10 +28,11 @@ All four are license-compatible (MIT / Apache-2.0). Reference clones live at `/U
 ## Where we are right now
 
 - **Sub-project:** #1 — Memory-first agent, Phase 1 (always-on workspace memory blocks)
-- **Phase status:** spec written + approved. Ready for implementation plan.
-- **Spec:** `docs/plans/rowl-memory-first/SPEC.md`
-- **Plan:** not written yet. Next action: invoke `superpowers:writing-plans` to produce `docs/plans/rowl-memory-first/PHASE-1-PLAN.md`.
-- **Branch:** main
+- **Phase status:** SHIPPED 2026-04-18. All 12 tasks complete. 23 memory tests green. Headless + live UI smoke green (defaults materialize on session create, agent sees blocks by label, external edits reflect next turn with no restart, malformed blocks log-and-skip without breaking turn).
+- **Spec:** `docs/plans/rowl-memory-first/SPEC.md` (commit `79d838d`)
+- **Plan:** `docs/plans/rowl-memory-first/PHASE-1-PLAN.md` (commit `069fce5`)
+- **Branch:** `phase-1/memory-blocks` (14 commits ahead of main, no remote; ready to merge into main when desired)
+- **Next:** Brainstorm Phase 2 — agent-editable memory tools (`core_memory_replace` / `core_memory_append`) so the agent can curate its own blocks. Deferred by the Phase 1 scope lock.
 - **Blocker:** none.
 
 ## Last session handoff
@@ -63,7 +64,7 @@ These existed at fork time; we accepted them rather than pre-fixing upstream tec
 | # | Initiative | Status | Why this order |
 |---|-----------|--------|----------------|
 | 0 | Bootstrap (fork craft-agents → rebrand → docs convention) | shipped | Must establish the base before any features. |
-| 1 | Memory-first agent (Letta pattern port) | Phase 1 spec approved | Foundational. Every subsequent feature behaves differently with memory. |
+| 1 | Memory-first agent (Letta pattern port) | Phase 1 shipped 2026-04-18 | Foundational. Every subsequent feature behaves differently with memory. |
 | 2 | Organizing layer (Paperclip-style goals/issues/docs) | not-started | Gives "why are we doing this" structure on top of memory. |
 | 3 | t3code cherry-picks (checkpoints, worktrees, stacked PRs) | not-started | High-value, self-contained adds. |
 | 4 | Research/review UX polish | not-started | Surfaces #2's data model as real research workflow UI. |
@@ -95,6 +96,8 @@ These existed at fork time; we accepted them rather than pre-fixing upstream tec
 - **2026-04-18** — `/Users/mauriello/Dev/rowl/` (old repo) frozen, not deleted. Untouched.
 - **2026-04-18** — Trademark compliance: Apache-2.0 NOTICE preserved + addendum; "Craft"/"Craft Agents" branding removed from user-visible surfaces (productName, appId, README title).
 - **2026-04-18** — Inherited upstream typecheck:all + ~0.6% test failures accepted as known-baseline rather than pre-fixed before Rowl work begins. Triage if they bite.
+- **2026-04-18** — Sub-project #1 Phase 1 (always-on workspace memory blocks): code + tests complete on branch `phase-1/memory-blocks`. Memory files live at `{workspaceRootPath}/memory/<label>.md` with YAML frontmatter; loader is sync (deviation from spec's async signature, documented in plan) because `PromptBuilder.buildContextParts()` is sync. Blocks render as a single `<memory_blocks>` XML wrapper prepended to per-turn context (first position, before date/time). Three defaults (`persona`, `human`, `project`) are materialized lazily by `SessionManager.createSession()` on first session in a workspace. Missing/malformed blocks log-and-skip; never fail the turn.
+- **2026-04-18** — Sub-project #1 Phase 1 SHIPPED. Live UI smoke confirmed end-to-end: creating a workspace + session at a fresh path materialized `memory/{persona,human,project}.md`; agent response named all three blocks on first turn; external edit to `human.md` reflected in the very next turn with no restart; malformed `broken.md` produced the expected `[memory] Skipped … invalid frontmatter (…)` log line without breaking the turn.
 
 ## Update discipline (non-negotiable)
 
