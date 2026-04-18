@@ -40,6 +40,11 @@ describe('renderMemoryBlocks', () => {
     expect(out).toContain('description="has a &quot;quote&quot;"');
   });
 
+  it('escapes &, <, > in description attribute (in that order)', () => {
+    const out = renderMemoryBlocks([mk('x', 'A & B <c> "d"', 'body')]);
+    expect(out).toContain('description="A &amp; B &lt;c&gt; &quot;d&quot;"');
+  });
+
   it('trims trailing newline from content to avoid double blank lines', () => {
     const out = renderMemoryBlocks([mk('x', 'd', 'body\n')]);
     expect(out).toBe(
