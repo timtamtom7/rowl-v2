@@ -13,3 +13,16 @@ Commercial Terms of Service: https://www.anthropic.com/legal/commercial-terms
 
 Third-party dependencies are listed in package.json files and are subject
 to their respective licenses.
+
+---
+
+Rowl
+Copyright 2026 Rowl Contributors
+
+This product is a derivative work based on Craft Agents by Craft Docs Ltd.
+Original Craft Agents source: https://github.com/lukilabs/craft-agents-oss
+Forked at upstream commit: 61f7d48a5b4fd0a8094f002c9e3aea5f3824dcfb
+
+Modifications made by the Rowl project are documented in the git history
+of the Rowl repository. The "Craft" and "Craft Agents" trademarks belong
+to Craft Docs Ltd.; Rowl is not endorsed by or affiliated with Craft Docs Ltd.
