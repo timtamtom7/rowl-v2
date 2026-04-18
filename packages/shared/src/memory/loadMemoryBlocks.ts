@@ -1,5 +1,7 @@
-import { existsSync } from 'fs';
-import type { MemoryBlock } from './types.ts';
+import { existsSync, readdirSync, readFileSync } from 'fs';
+import { join } from 'path';
+import matter from 'gray-matter';
+import type { MemoryBlock, MemoryBlockFrontmatter } from './types.ts';
 import { getMemoryDir } from './paths.ts';
 
 /**
@@ -17,6 +19,65 @@ export function loadMemoryBlocks(workspaceRootPath: string): MemoryBlock[] {
   if (!existsSync(dir)) {
     return [];
   }
-  // Full implementation in Task 4.
-  return [];
+
+  const entries = readdirSync(dir);
+  const blocks: MemoryBlock[] = [];
+
+  for (const entry of entries) {
+    if (!entry.endsWith('.md')) continue;
+
+    const filePath = join(dir, entry);
+    const filenameLabel = entry.slice(0, -'.md'.length);
+
+    let raw: string;
+    try {
+      raw = readFileSync(filePath, 'utf-8');
+    } catch (err) {
+      console.warn(`[memory] Skipped ${filePath}: read failed (${(err as Error).message})`);
+      continue;
+    }
+
+    let parsed: { data: Record<string, unknown>; content: string };
+    try {
+      const result = matter(raw);
+      parsed = { data: result.data, content: result.content };
+    } catch (err) {
+      console.warn(`[memory] Skipped ${filePath}: invalid frontmatter (${(err as Error).message})`);
+      continue;
+    }
+
+    const fm = parsed.data as Partial<MemoryBlockFrontmatter>;
+    if (typeof fm.label !== 'string' || fm.label.length === 0) {
+      console.warn(`[memory] Skipped ${filePath}: missing label`);
+      continue;
+    }
+    if (typeof fm.description !== 'string' || fm.description.length === 0) {
+      console.warn(`[memory] Skipped ${filePath}: missing description`);
+      continue;
+    }
+    if (fm.label !== filenameLabel) {
+      console.warn(
+        `[memory] Skipped ${filePath}: label '${fm.label}' doesn't match filename '${filenameLabel}'`,
+      );
+      continue;
+    }
+
+    const limit = typeof fm.limit === 'number' ? fm.limit : undefined;
+    if (limit !== undefined && parsed.content.length > limit) {
+      console.warn(
+        `[memory] Block '${fm.label}' exceeds limit (${parsed.content.length}/${limit})`,
+      );
+    }
+
+    blocks.push({
+      label: fm.label,
+      description: fm.description,
+      content: parsed.content,
+      limit,
+      filePath,
+    });
+  }
+
+  blocks.sort((a, b) => a.label.localeCompare(b.label));
+  return blocks;
 }
