@@ -37,6 +37,7 @@ import {
 } from '@craft-agent/shared/config'
 import type { ActiveSessionInfo, SessionProcessingStatus } from '@craft-agent/core/types'
 import { loadWorkspaceConfig } from '@craft-agent/shared/workspaces'
+import { ensureDefaultMemoryBlocks } from '@craft-agent/shared/memory'
 import {
   // Session persistence functions
   listSessions as listStoredSessions,
@@ -2147,6 +2148,12 @@ export class SessionManager implements ISessionManager {
     // Get new session defaults from workspace config (with global fallback)
     // Options.permissionMode overrides the workspace default (used by EditPopover for auto-execute)
     const workspaceRootPath = workspace.rootPath
+
+    // Materialize default memory/ scaffolding on first session in a workspace.
+    // No-op if memory/ already exists. Failures are logged, not thrown —
+    // memory is an enhancement, not a prerequisite for sessions.
+    await ensureDefaultMemoryBlocks(workspaceRootPath)
+
     const wsConfig = loadWorkspaceConfig(workspaceRootPath)
     const globalDefaults = loadConfigDefaults()
 
