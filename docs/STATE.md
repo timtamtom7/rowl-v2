@@ -1,7 +1,7 @@
 # Rowl — Current State (Plans Front Door)
 
-**Last updated:** 2026-04-18 (sub-project #0 in progress)
-**Current focus:** Sub-project #0 — Bootstrap (fork + rebrand + docs convention)
+**Last updated:** 2026-04-18 (sub-project #0 shipped)
+**Current focus:** Sub-project #1 — Memory-first agent (planning phase, not started)
 
 > **If you are a new session resuming Rowl work, read this file FIRST.**
 > It orients you in ~60 seconds and tells you what to read next.
@@ -27,23 +27,25 @@ All four are license-compatible (MIT / Apache-2.0). Reference clones live at `/U
 
 ## Where we are right now
 
-- **Sub-project:** #0 — Bootstrap
-- **Phase:** in progress (plan being executed)
-- **Plan:** `docs/plans/2026-04-18-subproject-0-bootstrap.md`
-- **Branch:** main (no feature branch for bootstrap)
-- **Blocker:** none
+- **Sub-project:** #1 — Memory-first agent (not started)
+- **Phase:** pre-planning — need to brainstorm scope against craft-agents' session/agent model
+- **Plan:** not written yet
+- **Branch:** main
+- **Blocker:** none. Next action: use `superpowers:brainstorming` skill to decompose sub-project #1 against the new codebase (craft-agents base, not the old t3code base). Then `superpowers:writing-plans` to produce the first phase plan.
 
 ## Last session handoff
 
-**Session end: 2026-04-18 (plan written, execution starting)**
+**Session end: 2026-04-18 (sub-project #0 shipped)**
 
-- Confirmed base = craft-agents-oss fork (honors original intent of "use craft-agents UI as the base we put everything into"). NOT a continuation of the previous `/rowl/` t3code-fork direction.
-- Old `/Users/mauriello/Dev/rowl/` repo frozen in place as donor/reference; no deletions done there.
-- New codebase lives at `/Users/mauriello/Dev/rowl-v2/`.
-- Product name: Rowl (unchanged). Internal workspace package names (`@craft-agent/*`) intentionally NOT renamed — minimal rebrand only.
-- Memory-first (sub-project #1) will be re-planned fresh after bootstrap ships. Old `/rowl/` phase-1a code can be read as translation reference when the new plan is written; it will NOT be copied verbatim (Effect-TS → plain TS translation needed, and scope may shift).
+- Forked craft-agents-oss (upstream commit `61f7d48a5b4fd0a8094f002c9e3aea5f3824dcfb`) into `/Users/mauriello/Dev/rowl-v2/`. Full history preserved; `origin` remote removed.
+- Rebranded user-visible surfaces: root `package.json` name → `rowl`, README top section, `NOTICE` addendum (Apache-2.0 §4(c) compliant), Electron bundle identity (`appId: dev.rowl.app`, `productName: Rowl`).
+- Internal `@craft-agent/*` workspace names intentionally left as-is (minimal rebrand, avoids import-rewrite ripple). Consequence: dev-time Electron still uses `~/.craft-agent/` state dir; cannot run Rowl dev and packaged Craft Agents.app simultaneously.
+- Established `docs/plans/` convention and `docs/STATE.md` as the living front door.
+- Baseline verified: `bun install`, `bun run typecheck` (shared), and `bun run electron:build` all green. Electron window opens. Visual smoke confirmed by user.
+- Inherited upstream issues accepted as known-baseline (see "Known-baseline issues" section above).
+- No git remote configured; no GitHub repo created yet.
 
-**Next session resumes by:** continuing to execute `docs/plans/2026-04-18-subproject-0-bootstrap.md` task-by-task, then brainstorming sub-project #1 (memory port).
+**Next session resumes by:** invoke `superpowers:brainstorming` to scope sub-project #1 (memory-first port) against the craft-agents codebase. The prior `/Users/mauriello/Dev/rowl/` phase-1a memory code (branch `phase-1a/core-memory-substrate`, tag `v-phase-1a`) is a translation reference only — Effect-TS there vs plain TS here, and craft-agents has a different agent backend shape (`packages/shared/src/agent/backend/types.ts`), so the port will be a rewrite, not a copy.
 
 ---
 
@@ -59,7 +61,7 @@ These existed at fork time; we accepted them rather than pre-fixing upstream tec
 
 | # | Initiative | Status | Why this order |
 |---|-----------|--------|----------------|
-| 0 | Bootstrap (fork craft-agents → rebrand → docs convention) | in progress | Must establish the base before any features. |
+| 0 | Bootstrap (fork craft-agents → rebrand → docs convention) | shipped | Must establish the base before any features. |
 | 1 | Memory-first agent (Letta pattern port) | not-started | Foundational. Every subsequent feature behaves differently with memory. |
 | 2 | Organizing layer (Paperclip-style goals/issues/docs) | not-started | Gives "why are we doing this" structure on top of memory. |
 | 3 | t3code cherry-picks (checkpoints, worktrees, stacked PRs) | not-started | High-value, self-contained adds. |
