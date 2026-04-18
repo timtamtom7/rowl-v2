@@ -127,4 +127,36 @@ describe('loadMemoryBlocks', () => {
     expect(blocks).toHaveLength(1);
     expect(blocks[0].label).toBe('persona');
   });
+
+  it('includes block exceeding limit (does not truncate)', () => {
+    const { mkdirSync, writeFileSync } = require('fs');
+    const memDir = join(workspaceRoot, 'memory');
+    mkdirSync(memDir);
+
+    const body = 'x'.repeat(200);
+    writeFileSync(
+      join(memDir, 'big.md'),
+      `---\nlabel: big\ndescription: over cap\nlimit: 50\n---\n${body}\n`,
+    );
+
+    const blocks = loadMemoryBlocks(workspaceRoot);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].content.length).toBeGreaterThan(50);
+    expect(blocks[0].limit).toBe(50);
+  });
+
+  it('handles empty content (frontmatter only)', () => {
+    const { mkdirSync, writeFileSync } = require('fs');
+    const memDir = join(workspaceRoot, 'memory');
+    mkdirSync(memDir);
+
+    writeFileSync(
+      join(memDir, 'empty.md'),
+      '---\nlabel: empty\ndescription: nothing here yet\n---\n',
+    );
+
+    const blocks = loadMemoryBlocks(workspaceRoot);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].content).toBe('');
+  });
 });
