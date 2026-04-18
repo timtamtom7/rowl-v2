@@ -17,6 +17,8 @@ import { formatPreferencesForPrompt } from '../../config/preferences.ts';
 import { formatSessionState } from '../mode-manager.ts';
 import { getDateTimeContext, getWorkingDirectoryContext } from '../../prompts/system.ts';
 import { getSessionPlansPath, getSessionDataPath, getSessionPath } from '../../sessions/storage.ts';
+import { loadMemoryBlocks } from '../../memory/loadMemoryBlocks.ts';
+import { renderMemoryBlocks } from '../../memory/renderMemoryBlocks.ts';
 import type {
   PromptBuilderConfig,
   ContextBlockOptions,
@@ -69,7 +71,15 @@ export class PromptBuilder {
   ): string[] {
     const parts: string[] = [];
 
-    // Add date/time context first (enables prompt caching)
+    // Memory blocks — always-on, workspace-scoped, loaded from disk per turn.
+    // Rendered as a single <memory_blocks> XML wrapper. Empty set → skipped.
+    // MUST be first so the agent sees memory before any per-turn state.
+    if (this.workspaceRootPath) {
+      const rendered = renderMemoryBlocks(loadMemoryBlocks(this.workspaceRootPath));
+      if (rendered) parts.push(rendered);
+    }
+
+    // Add date/time context (enables prompt caching)
     parts.push(getDateTimeContext());
 
     // Add session state (permission mode, plans folder path, data folder path)
