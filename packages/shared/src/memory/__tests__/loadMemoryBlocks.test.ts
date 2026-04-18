@@ -50,4 +50,81 @@ describe('loadMemoryBlocks', () => {
     expect(blocks[2].limit).toBe(500);
     expect(blocks[0].filePath).toBe(join(memDir, 'human.md'));
   });
+
+  it('skips file with malformed YAML, loads the rest', () => {
+    const { mkdirSync, writeFileSync } = require('fs');
+    const memDir = join(workspaceRoot, 'memory');
+    mkdirSync(memDir);
+
+    writeFileSync(
+      join(memDir, 'good.md'),
+      '---\nlabel: good\ndescription: ok\n---\nbody\n',
+    );
+    writeFileSync(
+      join(memDir, 'bad.md'),
+      '---\nlabel: bad\ndescription: [unclosed\n---\nbody\n',
+    );
+
+    const blocks = loadMemoryBlocks(workspaceRoot);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].label).toBe('good');
+  });
+
+  it('skips file with missing label', () => {
+    const { mkdirSync, writeFileSync } = require('fs');
+    const memDir = join(workspaceRoot, 'memory');
+    mkdirSync(memDir);
+
+    writeFileSync(
+      join(memDir, 'nolabel.md'),
+      '---\ndescription: oops\n---\nbody\n',
+    );
+
+    const blocks = loadMemoryBlocks(workspaceRoot);
+    expect(blocks).toHaveLength(0);
+  });
+
+  it('skips file with missing description', () => {
+    const { mkdirSync, writeFileSync } = require('fs');
+    const memDir = join(workspaceRoot, 'memory');
+    mkdirSync(memDir);
+
+    writeFileSync(
+      join(memDir, 'nodesc.md'),
+      '---\nlabel: nodesc\n---\nbody\n',
+    );
+
+    const blocks = loadMemoryBlocks(workspaceRoot);
+    expect(blocks).toHaveLength(0);
+  });
+
+  it("skips file where frontmatter label doesn't match filename", () => {
+    const { mkdirSync, writeFileSync } = require('fs');
+    const memDir = join(workspaceRoot, 'memory');
+    mkdirSync(memDir);
+
+    writeFileSync(
+      join(memDir, 'persona.md'),
+      '---\nlabel: something_else\ndescription: ok\n---\nbody\n',
+    );
+
+    const blocks = loadMemoryBlocks(workspaceRoot);
+    expect(blocks).toHaveLength(0);
+  });
+
+  it('ignores non-.md files', () => {
+    const { mkdirSync, writeFileSync } = require('fs');
+    const memDir = join(workspaceRoot, 'memory');
+    mkdirSync(memDir);
+
+    writeFileSync(join(memDir, 'README.txt'), 'not a block');
+    writeFileSync(
+      join(memDir, 'persona.md'),
+      '---\nlabel: persona\ndescription: ok\n---\nbody\n',
+    );
+
+    const blocks = loadMemoryBlocks(workspaceRoot);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].label).toBe('persona');
+  });
 });
