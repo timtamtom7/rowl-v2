@@ -1,28 +1,20 @@
-# Craft Agents
+# Rowl
+
+**Memory-first coding agent. Fork of [craft-agents-oss](https://github.com/lukilabs/craft-agents-oss).**
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-## How it Works (Video)
-To understand what Craft Agents does and how it works watch this video.
+Rowl takes the Craft Agents Electron UI as its base and adds memory-first agent behavior (Letta-style git-backed memory blocks), a Paperclip-style goal/issue/document organizing layer, and niche engineering workflow features.
 
-[![Demo Video](https://img.youtube.com/vi/xQouiAIilvU/hqdefault.jpg)](https://www.youtube.com/watch?v=xQouiAIilvU)
+Status: early bootstrap. Nothing new wired up yet beyond rebrand.
 
-[Click Here (or on the image above) to watch the video on YouTube →](https://www.youtube.com/watch?v=xQouiAIilvU)
+## Attribution
 
+This project is a derivative work of [Craft Agents](https://github.com/lukilabs/craft-agents-oss) (Apache-2.0, © Craft Docs Ltd.). See `NOTICE` for full attribution. "Craft" and "Craft Agents" are trademarks of Craft Docs Ltd. and are not used to brand Rowl per their trademark policy (`TRADEMARK.md`).
 
-## Why Craft Agents was built
-Craft Agents is a tool we built so that we (at craft.do) can work effectively with agents. It enables intuitive multitasking, no-fluff connection to any API or Service, sharing sessions, and a more document (vs code) centric workflow - in a beautiful and fluid UI.
+---
 
-It uses the Claude Agent SDK and the Pi SDK side by side—building on what we found great and improving areas where we've desired improvements.
-
-It's built with Agent Native software principles in mind, and is highly customisable out of the box. One of the first of its kind.
-
-Craft Agents is open source under the Apache 2.0 license - so you are free to remix, change anything. And that's actually possible. We ourselves are building Craft Agents with Craft Agents only - no code editors - so really, any customisation is just a prompt away.
-
-We built Craft Agents because we wanted a better, more opinionated (and preferably non-CLI way) of working with the most powerful agents in the world. We'll continue to improve it, based on our experiences and intuition.
-
-<img width="1578" height="894" alt="image" src="https://github.com/user-attachments/assets/3f1f2fe8-7cf6-4487-99ff-76f6c8c0a3fb" />
+<!-- The sections below are inherited from craft-agents-oss and describe the technical base. They remain accurate for Rowl until changed. -->
 
 ## Things that are hard to believe "just work"
 
