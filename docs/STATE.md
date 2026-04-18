@@ -1,7 +1,7 @@
 # Rowl — Current State (Plans Front Door)
 
-**Last updated:** 2026-04-18 (sub-project #1 Phase 1 spec approved)
-**Current focus:** Sub-project #1 Phase 1 — Always-on workspace memory blocks. Spec complete; implementation plan next.
+**Last updated:** 2026-04-18 (sub-project #1 Phase 1 code complete; UI smoke pending)
+**Current focus:** Sub-project #1 Phase 1 — Always-on workspace memory blocks. All 11 code-level tasks shipped on branch `phase-1/memory-blocks`. Task 12 manual UI smoke pending (blocked on quitting Craft Agents.app to free `~/.craft-agent/.server.lock`). Headless smoke passed end-to-end.
 
 > **If you are a new session resuming Rowl work, read this file FIRST.**
 > It orients you in ~60 seconds and tells you what to read next.
@@ -28,11 +28,12 @@ All four are license-compatible (MIT / Apache-2.0). Reference clones live at `/U
 ## Where we are right now
 
 - **Sub-project:** #1 — Memory-first agent, Phase 1 (always-on workspace memory blocks)
-- **Phase status:** spec written + approved. Ready for implementation plan.
-- **Spec:** `docs/plans/rowl-memory-first/SPEC.md`
-- **Plan:** not written yet. Next action: invoke `superpowers:writing-plans` to produce `docs/plans/rowl-memory-first/PHASE-1-PLAN.md`.
-- **Branch:** main
-- **Blocker:** none.
+- **Phase status:** code complete (Tasks 1–11 of 12 shipped). 23 memory unit + integration tests green. Headless smoke green.
+- **Spec:** `docs/plans/rowl-memory-first/SPEC.md` (commit `79d838d`)
+- **Plan:** `docs/plans/rowl-memory-first/PHASE-1-PLAN.md` (commit `069fce5`)
+- **Branch:** `phase-1/memory-blocks` (13 commits ahead of main, no remote)
+- **Remaining:** Task 12 manual UI smoke via Electron; final code review across all 12 tasks.
+- **Blocker:** Craft Agents.app currently holds `~/.craft-agent/.server.lock` (PID 12724). Quit it to free the lock and run Rowl dev Electron for the UI smoke.
 
 ## Last session handoff
 
@@ -63,7 +64,7 @@ These existed at fork time; we accepted them rather than pre-fixing upstream tec
 | # | Initiative | Status | Why this order |
 |---|-----------|--------|----------------|
 | 0 | Bootstrap (fork craft-agents → rebrand → docs convention) | shipped | Must establish the base before any features. |
-| 1 | Memory-first agent (Letta pattern port) | Phase 1 spec approved | Foundational. Every subsequent feature behaves differently with memory. |
+| 1 | Memory-first agent (Letta pattern port) | Phase 1 code complete (UI smoke pending) | Foundational. Every subsequent feature behaves differently with memory. |
 | 2 | Organizing layer (Paperclip-style goals/issues/docs) | not-started | Gives "why are we doing this" structure on top of memory. |
 | 3 | t3code cherry-picks (checkpoints, worktrees, stacked PRs) | not-started | High-value, self-contained adds. |
 | 4 | Research/review UX polish | not-started | Surfaces #2's data model as real research workflow UI. |
@@ -95,6 +96,7 @@ These existed at fork time; we accepted them rather than pre-fixing upstream tec
 - **2026-04-18** — `/Users/mauriello/Dev/rowl/` (old repo) frozen, not deleted. Untouched.
 - **2026-04-18** — Trademark compliance: Apache-2.0 NOTICE preserved + addendum; "Craft"/"Craft Agents" branding removed from user-visible surfaces (productName, appId, README title).
 - **2026-04-18** — Inherited upstream typecheck:all + ~0.6% test failures accepted as known-baseline rather than pre-fixed before Rowl work begins. Triage if they bite.
+- **2026-04-18** — Sub-project #1 Phase 1 (always-on workspace memory blocks): code + tests complete on branch `phase-1/memory-blocks`. Memory files live at `{workspaceRootPath}/memory/<label>.md` with YAML frontmatter; loader is sync (deviation from spec's async signature, documented in plan) because `PromptBuilder.buildContextParts()` is sync. Blocks render as a single `<memory_blocks>` XML wrapper prepended to per-turn context (first position, before date/time). Three defaults (`persona`, `human`, `project`) are materialized lazily by `SessionManager.createSession()` on first session in a workspace. Missing/malformed blocks log-and-skip; never fail the turn.
 
 ## Update discipline (non-negotiable)
 
