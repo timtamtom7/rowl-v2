@@ -1,6 +1,6 @@
-appId: com.lukilabs.craft-agent
-productName: Craft Agents
-copyright: Copyright © 2026 Craft Docs Ltd.
+appId: dev.rowl.app
+productName: Rowl
+copyright: Copyright © 2026 Rowl Contributors. Based on Craft Agents © 2026 Craft Docs Ltd.
 
 electronVersion: "39.2.7"
 
