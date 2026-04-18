@@ -42,13 +42,14 @@ describe('loadMemoryBlocks', () => {
 
     expect(blocks).toHaveLength(3);
     expect(blocks.map((b) => b.label)).toEqual(['human', 'persona', 'project']);
-    expect(blocks[0]).toMatchObject({
+    const [human, , project] = blocks;
+    expect(human).toMatchObject({
       label: 'human',
       description: 'what Rowl knows about the user',
       content: 'Name: Mario.\n',
     });
-    expect(blocks[2].limit).toBe(500);
-    expect(blocks[0].filePath).toBe(join(memDir, 'human.md'));
+    expect(project!.limit).toBe(500);
+    expect(human!.filePath).toBe(join(memDir, 'human.md'));
   });
 
   it('skips file with malformed YAML, loads the rest', () => {
@@ -67,7 +68,7 @@ describe('loadMemoryBlocks', () => {
 
     const blocks = loadMemoryBlocks(workspaceRoot);
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].label).toBe('good');
+    expect(blocks[0]!.label).toBe('good');
   });
 
   it('skips file with missing label', () => {
@@ -125,7 +126,7 @@ describe('loadMemoryBlocks', () => {
 
     const blocks = loadMemoryBlocks(workspaceRoot);
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].label).toBe('persona');
+    expect(blocks[0]!.label).toBe('persona');
   });
 
   it('includes block exceeding limit (does not truncate)', () => {
@@ -141,8 +142,9 @@ describe('loadMemoryBlocks', () => {
 
     const blocks = loadMemoryBlocks(workspaceRoot);
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].content.length).toBeGreaterThan(50);
-    expect(blocks[0].limit).toBe(50);
+    const [big] = blocks;
+    expect(big!.content.length).toBeGreaterThan(50);
+    expect(big!.limit).toBe(50);
   });
 
   it('handles empty content (frontmatter only)', () => {
@@ -157,6 +159,6 @@ describe('loadMemoryBlocks', () => {
 
     const blocks = loadMemoryBlocks(workspaceRoot);
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].content).toBe('');
+    expect(blocks[0]!.content).toBe('');
   });
 });
