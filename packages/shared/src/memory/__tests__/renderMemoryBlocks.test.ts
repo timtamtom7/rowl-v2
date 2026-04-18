@@ -45,6 +45,26 @@ describe('renderMemoryBlocks', () => {
     expect(out).toContain('description="A &amp; B &lt;c&gt; &quot;d&quot;"');
   });
 
+  it('neutralizes literal </memory_block> inside body so it cannot terminate the wrapper', () => {
+    const body = 'Here is prose that mentions </memory_block> literally and also </memory_blocks>.';
+    const out = renderMemoryBlocks([mk('x', 'd', body)]);
+    // The closing tokens must no longer match the wrapper's closing tags.
+    expect(out).not.toMatch(/<\/memory_block>\nHere/);
+    // Zero-width space appears between `<` and `/memory_block...` in the body.
+    expect(out).toContain('<\u200B/memory_block>');
+    expect(out).toContain('<\u200B/memory_blocks>');
+    // Wrapper is still well-formed: exactly one opening and one closing wrapper tag.
+    expect(out!.match(/<memory_blocks>/g)?.length).toBe(1);
+    expect(out!.match(/<\/memory_blocks>/g)?.length).toBe(1);
+    expect(out!.match(/<\/memory_block>/g)?.length).toBe(1);
+  });
+
+  it('leaves unrelated angle-bracket content in body untouched', () => {
+    const body = 'Code: `<div class="x">hi</div>` and math: 3 < 4 && 5 > 2.';
+    const out = renderMemoryBlocks([mk('x', 'd', body)]);
+    expect(out).toContain(body);
+  });
+
   it('trims trailing newline from content to avoid double blank lines', () => {
     const out = renderMemoryBlocks([mk('x', 'd', 'body\n')]);
     expect(out).toBe(

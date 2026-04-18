@@ -35,17 +35,40 @@ const DEFAULTS: Array<{ label: string; content: string }> = [
  * defaults), do nothing — we never overwrite user state.
  *
  * Never throws. Logs and returns on failure so session init can continue.
+ *
+ * Concurrency: two parallel `createSession` calls on the same fresh workspace
+ * can both pass the `existsSync` check. The atomic non-recursive `mkdir`
+ * closes that race — the loser gets `EEXIST` and silently returns, deferring
+ * to the winner's writes. Each `writeFile` uses `flag: 'wx'` as a belt-and-
+ * suspenders check so a concurrent writer can't clobber a default file.
  */
 export async function ensureDefaultMemoryBlocks(workspaceRootPath: string): Promise<void> {
   const dir = getMemoryDir(workspaceRootPath);
   if (existsSync(dir)) return;
 
   try {
-    await mkdir(dir, { recursive: true });
+    // Atomic "create directory or fail EEXIST". Non-recursive intentionally:
+    // we want EEXIST if a concurrent caller beat us to it.
+    await mkdir(dir);
     for (const { label, content } of DEFAULTS) {
-      await writeFile(getMemoryBlockPath(workspaceRootPath, label), content, 'utf-8');
+      try {
+        await writeFile(
+          getMemoryBlockPath(workspaceRootPath, label),
+          content,
+          { encoding: 'utf-8', flag: 'wx' },
+        );
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        // EEXIST: concurrent winner already wrote this default — leave it alone.
+        if (code === 'EEXIST') continue;
+        throw err;
+      }
     }
   } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    // We lost the mkdir race or the dir materialized between existsSync and
+    // mkdir — both benign, leave the winner's state alone.
+    if (code === 'EEXIST') return;
     console.warn(
       `[memory] Failed to initialize default blocks at ${dir}: ${(err as Error).message}`,
     );
