@@ -48,7 +48,10 @@ export async function replaceInBlock(params: {
   const raw = await readFile(path, 'utf-8');
   let parsed: { data: Record<string, unknown>; content: string };
   try {
-    const r = matter(raw);
+    // Pass an empty options object to bypass gray-matter's module-level cache.
+    // The cache can cause malformed-YAML errors to be silently swallowed on
+    // subsequent reads of the same input string.
+    const r = matter(raw, {});
     parsed = { data: r.data, content: r.content };
   } catch (err) {
     return {
