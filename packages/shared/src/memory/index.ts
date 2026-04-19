@@ -7,3 +7,4 @@ export { writeBlockAtomic } from './writeBlockAtomic.ts';
 export type { MemoryEditResult, MemoryEditErrorCode } from './editTypes.ts';
 export { appendHistory } from './appendHistory.ts';
 export type { MemoryHistoryEntry } from './appendHistory.ts';
+export { replaceInBlock } from './replaceInBlock.ts';
