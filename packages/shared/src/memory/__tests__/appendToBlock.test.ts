@@ -91,4 +91,73 @@ describe('appendToBlock', () => {
     expect(entry.op).toBe('append');
     expect(entry.content).toBe('added.');
   });
+
+  it('returns BLOCK_MISSING when file does not exist', async () => {
+    const result = await appendToBlock({
+      workspaceRootPath: workspaceRoot,
+      label: 'ghost',
+      content: 'x',
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('BLOCK_MISSING');
+  });
+
+  it('returns STALE_MTIME when file is touched between read and write', async () => {
+    const path = setupBlock(
+      workspaceRoot,
+      'persona',
+      '---\nlabel: persona\ndescription: d\n---\nbefore\n',
+    );
+    const { utimes } = require('fs/promises');
+    const result = await appendToBlock({
+      workspaceRootPath: workspaceRoot,
+      label: 'persona',
+      content: 'after',
+      __beforeReStatForTest: async () => {
+        const future = new Date(Date.now() + 10_000);
+        await utimes(path, future, future);
+      },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('STALE_MTIME');
+    expect(readFileSync(path, 'utf-8')).not.toContain('after');
+  });
+
+  it('emits a size warning when the new body exceeds 16KB', async () => {
+    // 16383 bytes of body — below the 16384 threshold BEFORE we append.
+    const baseBody = 'x'.repeat(16_383);
+    setupBlock(
+      workspaceRoot,
+      'big',
+      `---\nlabel: big\ndescription: d\n---\n${baseBody}\n`,
+    );
+    // Append ~10 bytes — the stripped body (16383) + '\n' + 10 = 16394 > 16384.
+    const result = await appendToBlock({
+      workspaceRootPath: workspaceRoot,
+      label: 'big',
+      content: 'yyyyyyyyy.',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.newSize).toBeGreaterThan(16_384);
+      expect(result.warnings).toBeDefined();
+      expect(result.warnings![0]).toContain("block 'big'");
+      expect(result.warnings![0]).toContain('soft cap');
+    }
+  });
+
+  it('does NOT emit a size warning when the new body stays under 16KB', async () => {
+    setupBlock(
+      workspaceRoot,
+      'small',
+      '---\nlabel: small\ndescription: d\n---\nsmall body\n',
+    );
+    const result = await appendToBlock({
+      workspaceRootPath: workspaceRoot,
+      label: 'small',
+      content: 'short add.',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.warnings).toBeUndefined();
+  });
 });
