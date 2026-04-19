@@ -39,6 +39,7 @@ import { handleSetSessionStatus } from './handlers/set-session-status.ts';
 import { handleGetSessionInfo } from './handlers/get-session-info.ts';
 import { handleListSessions } from './handlers/list-sessions.ts';
 import { handleSendAgentMessage } from './handlers/send-agent-message.ts';
+import { handleCoreMemoryReplace } from './handlers/core-memory-replace.ts';
 
 // ============================================================
 // Canonical Zod Schemas
@@ -552,6 +553,8 @@ export const SESSION_TOOL_DEFS: SessionToolDef[] = [
   { name: 'list_sessions', description: TOOL_DESCRIPTIONS.list_sessions, inputSchema: ListSessionsSchema, executionMode: 'registry', safeMode: 'allow', readOnly: true, handler: handleListSessions },
   // Inter-session messaging
   { name: 'send_agent_message', description: TOOL_DESCRIPTIONS.send_agent_message, inputSchema: SendAgentMessageSchema, executionMode: 'registry', safeMode: 'block', handler: handleSendAgentMessage },
+  // Core memory editing (Phase 2 of memory-first agent)
+  { name: 'core_memory_replace', description: TOOL_DESCRIPTIONS.core_memory_replace, inputSchema: CoreMemoryReplaceSchema, executionMode: 'registry', safeMode: 'allow', handler: handleCoreMemoryReplace },
 ];
 
 export interface SessionToolFilterOptions {
