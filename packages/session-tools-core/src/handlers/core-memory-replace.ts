@@ -1,6 +1,6 @@
 import type { SessionToolContext } from '../context.ts';
 import type { ToolResult } from '../types.ts';
-import { resolveSessionWorkingDirectory } from '../source-helpers.ts';
+import { resolveSessionWorkingDirectory, resolveSessionWorkspaceRoot } from '../source-helpers.ts';
 import { replaceInBlock } from '@craft-agent/shared/memory';
 
 export interface CoreMemoryReplaceArgs {
@@ -20,9 +20,17 @@ export async function handleCoreMemoryReplace(
   ctx: SessionToolContext,
   args: CoreMemoryReplaceArgs,
 ): Promise<ToolResult> {
+  // Resolution order:
+  //   1. ctx.workingDirectory — set when the session IPC seeds a project root.
+  //   2. session.jsonl header `workingDirectory` — persisted per-session override.
+  //   3. session.jsonl header `workspaceRootPath` — the workspace root used by
+  //      Phase 1 for default memory-block materialization. This is the
+  //      fallback that covers the common "Open folder" flow where no
+  //      per-session workingDirectory is explicitly set.
   const workingDirectory =
     ctx.workingDirectory
-    ?? resolveSessionWorkingDirectory(ctx.workspacePath, ctx.sessionId);
+    ?? resolveSessionWorkingDirectory(ctx.workspacePath, ctx.sessionId)
+    ?? resolveSessionWorkspaceRoot(ctx.workspacePath, ctx.sessionId);
 
   if (!workingDirectory) {
     return {
