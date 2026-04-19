@@ -467,21 +467,32 @@ Use list_sessions to find session IDs, or use the sessionId returned by spawn_se
 
 The target session receives your message with a sender envelope containing your session ID, so it can use send_agent_message to reply.`,
 
-  core_memory_replace: `Replace an exact substring in one of your memory blocks.
+  core_memory_replace: `Update a fact in one of your memory blocks by replacing an exact substring.
 
-Memory blocks are named markdown files under the workspace's \`memory/\` directory (e.g. \`persona\`, \`human\`, \`project\`) that are automatically injected into every turn. Use this to correct, update, or refine facts you've previously written.
+Memory blocks (\`persona\`, \`human\`, \`project\`, and any user-created blocks) are the markdown files shown inside \`<memory_blocks>\` at the start of every turn. They are your persistent memory — the user expects edits made here to stick across sessions.
 
-The \`old_content\` must appear exactly once in the named block's body. If it doesn't match, or matches multiple times, you'll get an error — retry with more surrounding context. Set \`new_content\` to an empty string to delete the substring.
+**CALL THIS TOOL when:**
+- The user corrects a previously-recorded fact ("actually, I prefer X instead of Y").
+- The user asks you to change, update, or revise something you've already written to memory.
+- You notice a memory block contains outdated or wrong information and need to fix it.
 
-Frontmatter is never modified. Edits are atomic and recorded in \`memory/.history.jsonl\`.`,
+The \`old_content\` must appear exactly once in the named block's body — copy it verbatim from the \`<memory_blocks>\` content you can see. If there are 0 matches or >1 matches, you'll get an error; retry with more surrounding context to make the match unique. Pass an empty string for \`new_content\` to delete the matched substring entirely.
 
-  core_memory_append: `Add new content to the end of one of your memory blocks.
+Frontmatter is never modified. Edits are atomic and recorded in \`memory/.history.jsonl\`. After a successful call, briefly acknowledge what you updated — do not quote the full new block back to the user.`,
 
-Memory blocks are named markdown files under the workspace's \`memory/\` directory (e.g. \`persona\`, \`human\`, \`project\`) that are automatically injected into every turn. Use this to record new facts, preferences, or decisions you want to remember across turns.
+  core_memory_append: `Record a new fact in one of your memory blocks by appending it to the end.
 
-A newline is inserted automatically between the existing body and your new content — do not include a leading newline yourself.
+Memory blocks (\`persona\`, \`human\`, \`project\`, and any user-created blocks) are the markdown files shown inside \`<memory_blocks>\` at the start of every turn. They are your persistent memory — the user expects things they tell you to be recorded here when appropriate.
 
-Frontmatter is never modified. Edits are atomic and recorded in \`memory/.history.jsonl\`.`,
+**CALL THIS TOOL when:**
+- The user tells you a new fact about themselves (their name, role, preferences, how they like to work) → append to \`human\`.
+- The user tells you about the project, its goals, stack, constraints, or decisions → append to \`project\`.
+- The user asks you to adjust your own voice, persona, or working style → append to \`persona\`.
+- The user says any variant of "remember this", "remember that I…", "keep in mind", "from now on", "always", "going forward" → this is an explicit request to record; do it.
+
+You do NOT need to ask permission first — record and briefly acknowledge in the same turn. Never claim to have saved something without actually calling this tool.
+
+A newline is inserted automatically between the existing body and your new content. Do not include a leading newline. Frontmatter is never modified. Edits are atomic and recorded in \`memory/.history.jsonl\`.`,
 } as const;
 
 // ============================================================
