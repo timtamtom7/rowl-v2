@@ -29,12 +29,27 @@ describe('writeBlockAtomic', () => {
     expect(readFileSync(target, 'utf-8')).toBe('new\n');
   });
 
-  it('cleans up tmp file and rethrows when rename fails', async () => {
+  it('rethrows when the initial write fails (no tmp produced)', async () => {
     // Pass a path whose parent is a file, so tmp write itself fails.
     const blocker = join(dir, 'blocker');
     writeFileSync(blocker, 'not a dir');
     const bogusTarget = join(blocker, 'nested', 'out.md');
     await expect(writeBlockAtomic(bogusTarget, 'x')).rejects.toThrow();
     expect(existsSync(bogusTarget + '.tmp')).toBe(false);
+  });
+
+  it('cleans up tmp file and rethrows when rename fails', async () => {
+    const { mkdirSync, writeFileSync } = require('fs');
+    // Make target itself a non-empty directory. rename(tmp-file → non-empty-dir)
+    // fails portably with EISDIR / ENOTEMPTY, so tmp will exist and need cleanup.
+    const target = join(dir, 'target-is-dir');
+    mkdirSync(target);
+    writeFileSync(join(target, 'sibling-inside'), 'x');
+
+    await expect(writeBlockAtomic(target, 'new content')).rejects.toThrow();
+
+    expect(existsSync(target + '.tmp')).toBe(false); // cleanup ran
+    // Target directory and its contents are unchanged.
+    expect(existsSync(join(target, 'sibling-inside'))).toBe(true);
   });
 });

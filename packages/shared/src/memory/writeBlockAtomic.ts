@@ -17,7 +17,7 @@ export async function writeBlockAtomic(targetPath: string, content: string): Pro
     try {
       await unlink(tmp);
     } catch {
-      // Best-effort cleanup. Swallow — tmp may already be gone.
+      // Best-effort cleanup. Swallow — tmp may not exist (write failed before creating it) or may be inaccessible.
     }
     throw err;
   }
