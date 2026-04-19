@@ -40,6 +40,7 @@ import { handleGetSessionInfo } from './handlers/get-session-info.ts';
 import { handleListSessions } from './handlers/list-sessions.ts';
 import { handleSendAgentMessage } from './handlers/send-agent-message.ts';
 import { handleCoreMemoryReplace } from './handlers/core-memory-replace.ts';
+import { handleCoreMemoryAppend } from './handlers/core-memory-append.ts';
 
 // ============================================================
 // Canonical Zod Schemas
@@ -555,6 +556,7 @@ export const SESSION_TOOL_DEFS: SessionToolDef[] = [
   { name: 'send_agent_message', description: TOOL_DESCRIPTIONS.send_agent_message, inputSchema: SendAgentMessageSchema, executionMode: 'registry', safeMode: 'block', handler: handleSendAgentMessage },
   // Core memory editing (Phase 2 of memory-first agent)
   { name: 'core_memory_replace', description: TOOL_DESCRIPTIONS.core_memory_replace, inputSchema: CoreMemoryReplaceSchema, executionMode: 'registry', safeMode: 'allow', handler: handleCoreMemoryReplace },
+  { name: 'core_memory_append', description: TOOL_DESCRIPTIONS.core_memory_append, inputSchema: CoreMemoryAppendSchema, executionMode: 'registry', safeMode: 'allow', handler: handleCoreMemoryAppend },
 ];
 
 export interface SessionToolFilterOptions {
