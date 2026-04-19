@@ -5,3 +5,5 @@ export { loadMemoryBlocks } from './loadMemoryBlocks.ts';
 export { renderMemoryBlocks } from './renderMemoryBlocks.ts';
 export { writeBlockAtomic } from './writeBlockAtomic.ts';
 export type { MemoryEditResult, MemoryEditErrorCode } from './editTypes.ts';
+export { appendHistory } from './appendHistory.ts';
+export type { MemoryHistoryEntry } from './appendHistory.ts';
