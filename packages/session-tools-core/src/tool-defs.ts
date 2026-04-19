@@ -204,6 +204,17 @@ export const SendAgentMessageSchema = z.object({
   })).optional().describe('Files to include with the message'),
 });
 
+export const CoreMemoryReplaceSchema = z.object({
+  label: z.string().min(1).describe("Block name (e.g. 'persona', 'human', 'project') — no .md suffix"),
+  old_content: z.string().min(1).describe('Exact substring to replace. Must appear in the block body exactly once.'),
+  new_content: z.string().describe('Replacement text. Use an empty string to delete the substring.'),
+});
+
+export const CoreMemoryAppendSchema = z.object({
+  label: z.string().min(1).describe("Block name (e.g. 'persona', 'human', 'project') — no .md suffix"),
+  content: z.string().min(1).describe('Text to append to the end of the block body. A newline separator is inserted automatically — do not include a leading newline.'),
+});
+
 // ============================================================
 // Canonical Tool Descriptions (base — no DOC_REFS)
 // ============================================================
@@ -453,6 +464,22 @@ Use this to coordinate with spawned sessions, send follow-up instructions, or re
 Use list_sessions to find session IDs, or use the sessionId returned by spawn_session.
 
 The target session receives your message with a sender envelope containing your session ID, so it can use send_agent_message to reply.`,
+
+  core_memory_replace: `Replace an exact substring in one of your memory blocks.
+
+Memory blocks are named markdown files under the workspace's \`memory/\` directory (e.g. \`persona\`, \`human\`, \`project\`) that are automatically injected into every turn. Use this to correct, update, or refine facts you've previously written.
+
+The \`old_content\` must appear exactly once in the named block's body. If it doesn't match, or matches multiple times, you'll get an error — retry with more surrounding context. Set \`new_content\` to an empty string to delete the substring.
+
+Frontmatter is never modified. Edits are atomic and recorded in \`memory/.history.jsonl\`.`,
+
+  core_memory_append: `Add new content to the end of one of your memory blocks.
+
+Memory blocks are named markdown files under the workspace's \`memory/\` directory (e.g. \`persona\`, \`human\`, \`project\`) that are automatically injected into every turn. Use this to record new facts, preferences, or decisions you want to remember across turns.
+
+A newline is inserted automatically between the existing body and your new content — do not include a leading newline yourself.
+
+Frontmatter is never modified. Edits are atomic and recorded in \`memory/.history.jsonl\`.`,
 } as const;
 
 // ============================================================
