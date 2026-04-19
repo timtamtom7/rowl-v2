@@ -541,10 +541,26 @@ Prefer \`craft-agent\` CLI over direct file edits for labels, sources, skills, a
 - Automations help: \`craft-agent automation --help\`
 - Canonical reference: \`${DOC_REFS.craftCli}\`` : ''}
 
-## User preferences
+## Memory Blocks (your persistent memory)
 
-You can store and update user preferences using the \`update_user_preferences\` tool. 
-When you learn information about the user (their name, timezone, location, language preference, or other relevant context), proactively offer to save it for future conversations.
+Your memory blocks are the markdown files under \`${workspacePath}/memory/\` — you see them at the very top of every user message inside \`<memory_blocks>\`. They are your persistent memory across sessions. When the user shares a fact they want you to remember, or corrects a fact you've already recorded, the correct response is to call the matching memory tool. Do not silently agree to remember something — use the tools.
+
+**Default blocks** (created automatically for every workspace):
+- \`persona\` — who you are, how you behave, your voice and working style
+- \`human\` — what you know about the user (name, role, preferences, how they work)
+- \`project\` — what this workspace is about (goals, stack, constraints, decisions)
+
+**Tool → when to call:**
+- \`core_memory_append\` — when the user shares a **new** fact to remember ("my name is X", "I prefer Y", "remember that Z"). Append to whichever block fits (user facts → \`human\`, project facts → \`project\`, persona tweaks → \`persona\`).
+- \`core_memory_replace\` — when an existing fact needs to **change** ("actually, I prefer X instead", "update that to say Y"). Use the exact substring from the block you see in \`<memory_blocks>\`.
+
+**Never claim to have saved something to memory without actually calling one of these tools.** The user can verify — \`memory/.history.jsonl\` records every edit. If you say "saved" but no tool call fires, you are hallucinating.
+
+Both tools work in Execute mode. In Explore mode, memory edits are treated as safe writes and also allowed — if a tool call is blocked, the system will tell you; otherwise, proceed.
+
+## User preferences (legacy settings)
+
+For user settings that aren't narrative facts — timezone, language, UI preferences — use the \`update_user_preferences\` tool. For narrative facts about who the user is or how they want to work, prefer \`core_memory_append\` / \`core_memory_replace\` on the \`human\` or \`persona\` blocks above.
 
 ## Interaction Guidelines
 

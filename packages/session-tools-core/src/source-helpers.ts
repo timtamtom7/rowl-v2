@@ -7,8 +7,19 @@
  */
 
 import { existsSync, readFileSync, readdirSync, statSync, openSync, readSync, closeSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { SourceConfig } from './types.ts';
+
+/**
+ * Expand a leading `~` in a path to the current user's home directory.
+ * Pass-through for absolute or relative paths without a tilde prefix.
+ */
+function expandHome(path: string): string {
+  if (path === '~') return homedir();
+  if (path.startsWith('~/')) return join(homedir(), path.slice(2));
+  return path;
+}
 
 /** Strip UTF-8 BOM that breaks JSON.parse */
 function stripBom(text: string): string {
@@ -156,6 +167,40 @@ export function resolveSessionWorkingDirectory(
   workspacePath: string,
   sessionId: string
 ): string | undefined {
+  const header = readSessionHeader(workspacePath, sessionId);
+  const value = header?.workingDirectory;
+  return typeof value === 'string' && value.length > 0 ? expandHome(value) : undefined;
+}
+
+/**
+ * Read the session's workspaceRootPath from the persisted session.jsonl header.
+ *
+ * This is the project root that Phase 1 uses for default memory-block
+ * materialization (see SessionManager.createSession -> ensureDefaultMemoryBlocks).
+ * Values stored on disk may be tilde-notated (e.g. `~/Downloads/foo`) — this
+ * helper expands the tilde before returning so the caller can pass the result
+ * straight to fs operations.
+ *
+ * Returns undefined if the session file doesn't exist, can't be parsed,
+ * or has no workspaceRootPath set. Never throws.
+ */
+export function resolveSessionWorkspaceRoot(
+  workspacePath: string,
+  sessionId: string
+): string | undefined {
+  const header = readSessionHeader(workspacePath, sessionId);
+  const value = header?.workspaceRootPath;
+  return typeof value === 'string' && value.length > 0 ? expandHome(value) : undefined;
+}
+
+/**
+ * Read and parse the first line (header) of a session.jsonl file.
+ * Returns undefined on any failure — callers handle missing gracefully.
+ */
+function readSessionHeader(
+  workspacePath: string,
+  sessionId: string
+): Record<string, unknown> | undefined {
   try {
     const sessionFile = join(workspacePath, 'sessions', sessionId, 'session.jsonl');
     if (!existsSync(sessionFile)) return undefined;
@@ -165,13 +210,12 @@ export function resolveSessionWorkingDirectory(
       const buffer = Buffer.alloc(8192);
       const bytesRead = readSync(fd, buffer, 0, 8192, 0);
       const firstLine = buffer.toString('utf-8', 0, bytesRead).split('\n')[0] ?? '';
-      const header = JSON.parse(firstLine);
-      return header.workingDirectory || undefined;
+      return JSON.parse(firstLine) as Record<string, unknown>;
     } finally {
       closeSync(fd);
     }
   } catch {
-    return undefined; // Never fail — caller handles missing gracefully
+    return undefined;
   }
 }
 

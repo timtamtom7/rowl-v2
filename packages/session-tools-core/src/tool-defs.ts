@@ -39,6 +39,8 @@ import { handleSetSessionStatus } from './handlers/set-session-status.ts';
 import { handleGetSessionInfo } from './handlers/get-session-info.ts';
 import { handleListSessions } from './handlers/list-sessions.ts';
 import { handleSendAgentMessage } from './handlers/send-agent-message.ts';
+import { handleCoreMemoryReplace } from './handlers/core-memory-replace.ts';
+import { handleCoreMemoryAppend } from './handlers/core-memory-append.ts';
 
 // ============================================================
 // Canonical Zod Schemas
@@ -202,6 +204,17 @@ export const SendAgentMessageSchema = z.object({
     path: z.string().describe('Absolute file path on disk'),
     name: z.string().optional().describe('Display name (defaults to file basename)'),
   })).optional().describe('Files to include with the message'),
+});
+
+export const CoreMemoryReplaceSchema = z.object({
+  label: z.string().min(1).describe("Block name (e.g. 'persona', 'human', 'project') — no .md suffix"),
+  old_content: z.string().min(1).describe('Exact substring to replace. Must appear in the block body exactly once.'),
+  new_content: z.string().describe('Replacement text. Use an empty string to delete the substring.'),
+});
+
+export const CoreMemoryAppendSchema = z.object({
+  label: z.string().min(1).describe("Block name (e.g. 'persona', 'human', 'project') — no .md suffix"),
+  content: z.string().min(1).describe('Text to append to the end of the block body. A newline separator is inserted automatically — do not include a leading newline.'),
 });
 
 // ============================================================
@@ -453,6 +466,33 @@ Use this to coordinate with spawned sessions, send follow-up instructions, or re
 Use list_sessions to find session IDs, or use the sessionId returned by spawn_session.
 
 The target session receives your message with a sender envelope containing your session ID, so it can use send_agent_message to reply.`,
+
+  core_memory_replace: `Update a fact in one of your memory blocks by replacing an exact substring.
+
+Memory blocks (\`persona\`, \`human\`, \`project\`, and any user-created blocks) are the markdown files shown inside \`<memory_blocks>\` at the start of every turn. They are your persistent memory — the user expects edits made here to stick across sessions.
+
+**CALL THIS TOOL when:**
+- The user corrects a previously-recorded fact ("actually, I prefer X instead of Y").
+- The user asks you to change, update, or revise something you've already written to memory.
+- You notice a memory block contains outdated or wrong information and need to fix it.
+
+The \`old_content\` must appear exactly once in the named block's body — copy it verbatim from the \`<memory_blocks>\` content you can see. If there are 0 matches or >1 matches, you'll get an error; retry with more surrounding context to make the match unique. Pass an empty string for \`new_content\` to delete the matched substring entirely.
+
+Frontmatter is never modified. Edits are atomic and recorded in \`memory/.history.jsonl\`. After a successful call, briefly acknowledge what you updated — do not quote the full new block back to the user.`,
+
+  core_memory_append: `Record a new fact in one of your memory blocks by appending it to the end.
+
+Memory blocks (\`persona\`, \`human\`, \`project\`, and any user-created blocks) are the markdown files shown inside \`<memory_blocks>\` at the start of every turn. They are your persistent memory — the user expects things they tell you to be recorded here when appropriate.
+
+**CALL THIS TOOL when:**
+- The user tells you a new fact about themselves (their name, role, preferences, how they like to work) → append to \`human\`.
+- The user tells you about the project, its goals, stack, constraints, or decisions → append to \`project\`.
+- The user asks you to adjust your own voice, persona, or working style → append to \`persona\`.
+- The user says any variant of "remember this", "remember that I…", "keep in mind", "from now on", "always", "going forward" → this is an explicit request to record; do it.
+
+You do NOT need to ask permission first — record and briefly acknowledge in the same turn. Never claim to have saved something without actually calling this tool.
+
+A newline is inserted automatically between the existing body and your new content. Do not include a leading newline. Frontmatter is never modified. Edits are atomic and recorded in \`memory/.history.jsonl\`.`,
 } as const;
 
 // ============================================================
@@ -525,6 +565,9 @@ export const SESSION_TOOL_DEFS: SessionToolDef[] = [
   { name: 'list_sessions', description: TOOL_DESCRIPTIONS.list_sessions, inputSchema: ListSessionsSchema, executionMode: 'registry', safeMode: 'allow', readOnly: true, handler: handleListSessions },
   // Inter-session messaging
   { name: 'send_agent_message', description: TOOL_DESCRIPTIONS.send_agent_message, inputSchema: SendAgentMessageSchema, executionMode: 'registry', safeMode: 'block', handler: handleSendAgentMessage },
+  // Core memory editing (Phase 2 of memory-first agent)
+  { name: 'core_memory_replace', description: TOOL_DESCRIPTIONS.core_memory_replace, inputSchema: CoreMemoryReplaceSchema, executionMode: 'registry', safeMode: 'allow', handler: handleCoreMemoryReplace },
+  { name: 'core_memory_append', description: TOOL_DESCRIPTIONS.core_memory_append, inputSchema: CoreMemoryAppendSchema, executionMode: 'registry', safeMode: 'allow', handler: handleCoreMemoryAppend },
 ];
 
 export interface SessionToolFilterOptions {

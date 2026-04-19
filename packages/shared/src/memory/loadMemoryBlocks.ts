@@ -45,7 +45,12 @@ export function loadMemoryBlocks(workspaceRootPath: string): MemoryBlock[] {
 
     let parsed: { data: Record<string, unknown>; content: string };
     try {
-      const result = matter(raw);
+      // Pass an empty options object to bypass gray-matter's content-keyed
+      // cache. The cache is populated before parseMatter runs, so on a second
+      // call with identical malformed YAML it returns the cached (partially-
+      // mutated) file without re-throwing — silently swallowing the parse
+      // error. See the matching fix in replaceInBlock.ts / appendToBlock.ts.
+      const result = matter(raw, {});
       parsed = { data: result.data, content: result.content };
     } catch (err) {
       console.warn(`[memory] Skipped ${filePath}: invalid frontmatter (${(err as Error).message})`);
