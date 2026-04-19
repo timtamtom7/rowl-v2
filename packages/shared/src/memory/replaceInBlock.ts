@@ -24,6 +24,8 @@ export async function replaceInBlock(params: {
   label: string;
   oldContent: string;
   newContent: string;
+  /** @internal — test hook, do not use in production. Runs between read and re-stat. */
+  __beforeReStatForTest?: () => Promise<void> | void;
 }): Promise<MemoryEditResult> {
   const { workspaceRootPath, label, oldContent, newContent } = params;
   const path = getMemoryBlockPath(workspaceRootPath, label);
@@ -79,6 +81,8 @@ export async function replaceInBlock(params: {
   }
 
   const newBody = parsed.content.replace(oldContent, newContent);
+
+  if (params.__beforeReStatForTest) await params.__beforeReStatForTest();
 
   // Re-stat for STALE_MTIME check.
   const currentMtime = (await stat(path)).mtimeMs;

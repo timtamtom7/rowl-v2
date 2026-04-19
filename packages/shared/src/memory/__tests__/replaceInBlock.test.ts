@@ -154,4 +154,34 @@ describe('replaceInBlock', () => {
     expect(entry.old).toBe('before');
     expect(entry.new).toBe('after');
   });
+
+  it('returns STALE_MTIME when file is touched between read and write', async () => {
+    const path = setupBlock(
+      workspaceRoot,
+      'persona',
+      '---\nlabel: persona\ndescription: d\n---\noriginal\n',
+    );
+    const { utimes } = require('fs/promises');
+
+    const result = await replaceInBlock({
+      workspaceRootPath: workspaceRoot,
+      label: 'persona',
+      oldContent: 'original',
+      newContent: 'updated',
+      __beforeReStatForTest: async () => {
+        // Bump mtime by 10 seconds to simulate external edit.
+        const future = new Date(Date.now() + 10_000);
+        await utimes(path, future, future);
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe('STALE_MTIME');
+      expect(result.message).toContain("block 'persona' was modified externally");
+    }
+    // Confirm the file was NOT written.
+    expect(readFileSync(path, 'utf-8')).toContain('original');
+    expect(readFileSync(path, 'utf-8')).not.toContain('updated');
+  });
 });
