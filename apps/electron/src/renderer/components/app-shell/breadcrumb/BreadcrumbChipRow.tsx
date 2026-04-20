@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import * as ContextMenu from '@radix-ui/react-context-menu';
 import { MessageSquare, FileText, Settings as SettingsIcon, Sparkles, Layers, type LucideIcon } from 'lucide-react';
 import {
   panelStackAtom,
@@ -10,6 +11,7 @@ import {
 } from '../../../atoms/panel-stack';
 import {
   activeWorkspaceAllSessionsModeAtom,
+  toggleAllSessionsModeAtom,
 } from '../../../hooks/useAllSessionsDropdownMode';
 import { useBreadcrumbOverflow } from '../../../hooks/useBreadcrumbOverflow';
 import { BreadcrumbChip } from './BreadcrumbChip';
@@ -35,6 +37,7 @@ export function BreadcrumbChipRow({ labelFor, onOpenAllSessionsDropdown }: Bread
   const [focusedId, setFocusedId] = useAtom(focusedPanelIdAtom);
   const closePanel = useSetAtom(closePanelAtom);
   const mode = useAtomValue(activeWorkspaceAllSessionsModeAtom);
+  const toggleMode = useSetAtom(toggleAllSessionsModeAtom);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
   const { visibleIds, hiddenPanels, chipMaxWidth } = useBreadcrumbOverflow(
@@ -76,6 +79,19 @@ export function BreadcrumbChipRow({ labelFor, onOpenAllSessionsDropdown }: Bread
         const label = isFirst ? 'Sessions' : labelFor(panel);
         const variant: 'chip' | 'trigger' = isFirst && mode === 'dropdown' ? 'trigger' : 'chip';
         const closable = !isFirst; // All Sessions is pinned
+        const chipEl = (
+          <BreadcrumbChip
+            id={panel.id}
+            label={label}
+            icon={ICON_FOR_TYPE[panel.panelType]}
+            focused={panel.id === focusedId}
+            closable={closable}
+            variant={variant}
+            maxWidth={chipMaxWidth}
+            onClick={() => handleChipClick(panel, isFirst)}
+            onClose={closable ? () => closePanel(panel.id) : undefined}
+          />
+        );
         return (
           <React.Fragment key={panel.id}>
             {idx > 0 && (
@@ -87,17 +103,25 @@ export function BreadcrumbChipRow({ labelFor, onOpenAllSessionsDropdown }: Bread
                 ·
               </span>
             )}
-            <BreadcrumbChip
-              id={panel.id}
-              label={label}
-              icon={ICON_FOR_TYPE[panel.panelType]}
-              focused={panel.id === focusedId}
-              closable={closable}
-              variant={variant}
-              maxWidth={chipMaxWidth}
-              onClick={() => handleChipClick(panel, isFirst)}
-              onClose={closable ? () => closePanel(panel.id) : undefined}
-            />
+            {isFirst ? (
+              <ContextMenu.Root>
+                <ContextMenu.Trigger asChild>{chipEl}</ContextMenu.Trigger>
+                <ContextMenu.Portal>
+                  <ContextMenu.Content
+                    className="z-50 min-w-[200px] rounded-md border border-border bg-popover p-1 shadow-md"
+                  >
+                    <ContextMenu.Item
+                      onSelect={() => toggleMode()}
+                      className="flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
+                    >
+                      {mode === 'panel' ? 'Collapse to dropdown' : 'Expand to panel'}
+                    </ContextMenu.Item>
+                  </ContextMenu.Content>
+                </ContextMenu.Portal>
+              </ContextMenu.Root>
+            ) : (
+              chipEl
+            )}
           </React.Fragment>
         );
       })}

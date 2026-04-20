@@ -405,7 +405,6 @@ export function TopBar({
             <WorkspaceBreadcrumb
               workspace={workspaces.find((w) => w.id === activeWorkspaceId) ?? null}
               labelFor={labelFor}
-              onOpenAllSessionsDropdown={undefined}
             />
           </div>
 
