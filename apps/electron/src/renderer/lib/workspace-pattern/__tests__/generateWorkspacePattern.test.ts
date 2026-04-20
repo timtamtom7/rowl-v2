@@ -1,4 +1,9 @@
-import { describe, it, expect, beforeAll } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
+
+// Save the real document (e.g. happy-dom's) so we can restore it after this
+// file runs — otherwise our fake leaks into downstream tests that use DOM
+// APIs (e.g. `@testing-library/react` render()).
+const ORIGINAL_DOCUMENT = (globalThis as { document?: unknown }).document;
 
 // Canvas isn't available under bun:test — we polyfill a minimal stub so the
 // generator can exercise its color math path; toDataURL returns a stable
@@ -32,6 +37,14 @@ beforeAll(() => {
       throw new Error(`unexpected tag ${tag}`);
     },
   };
+});
+
+afterAll(() => {
+  if (ORIGINAL_DOCUMENT === undefined) {
+    delete (globalThis as { document?: unknown }).document;
+  } else {
+    (globalThis as { document?: unknown }).document = ORIGINAL_DOCUMENT;
+  }
 });
 
 import { generateWorkspacePattern } from '../generateWorkspacePattern';
