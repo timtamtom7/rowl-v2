@@ -5,6 +5,8 @@
 
 > **If you are a new session resuming Rowl work, read this file FIRST.**
 > It orients you in ~60 seconds and tells you what to read next.
+>
+> For the full feature backlog — every feature from every source repo, status by sub-project — read [`docs/ROADMAP.md`](./ROADMAP.md). STATE.md = what's active right now; ROADMAP.md = what Rowl is meant to become.
 
 ---
 
