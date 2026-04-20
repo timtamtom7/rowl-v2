@@ -70,7 +70,7 @@ export function BreadcrumbChipRow({ labelFor, onOpenAllSessionsDropdown }: Bread
   );
 
   return (
-    <div ref={containerRef} className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden">
+    <div ref={containerRef} className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
       {visiblePanels.map((panel, idx) => {
         const isFirst = panels.indexOf(panel) === 0;
         const label = isFirst ? 'Sessions' : labelFor(panel);

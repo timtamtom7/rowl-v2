@@ -24,7 +24,7 @@ export function WorkspaceBreadcrumb({
   const workspaceName = workspace?.name ?? null;
 
   return (
-    <div className="flex items-center gap-1 min-w-0 flex-1">
+    <div className="flex items-center gap-2 min-w-0 flex-1">
       <span
         className={cn(
           'max-w-[240px] px-2 py-1 text-sm font-medium truncate shrink-0',

@@ -34,12 +34,12 @@ export function BreadcrumbChip({
       data-chip-variant={variant}
       style={{ maxWidth }}
       className={cn(
-        'group inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-sm shrink min-w-0',
+        'group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm shrink min-w-0',
         'focus:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
         'transition-colors',
         focused
-          ? 'bg-accent text-foreground font-medium'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent/40',
+          ? 'bg-accent/30 text-foreground font-medium'
+          : 'text-muted-foreground hover:text-foreground hover:bg-accent/20',
       )}
     >
       {Icon && <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
