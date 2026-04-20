@@ -189,13 +189,25 @@ export const closePanelAtom = atom(
     const stack = get(panelStackAtom)
     const idx = stack.findIndex(p => p.id === id)
     if (idx === -1) return
-    const remaining = [...stack.slice(0, idx), ...stack.slice(idx + 1)]
+    const removed = stack[idx]
+    // Root (All Sessions) is pinned: closing it is a no-op. The chip in the
+    // breadcrumb row doesn't expose a ✕ so this mostly guards keyboard
+    // shortcuts (Cmd+W) and programmatic callers.
+    if (removed.route === ALL_SESSIONS_ROUTE) return
 
+    const remaining = [...stack.slice(0, idx), ...stack.slice(idx + 1)]
     set(panelStackAtom, normalizeProportions(remaining))
 
     if (get(focusedPanelIdAtom) === id) {
       const newIdx = Math.min(idx, remaining.length - 1)
       set(focusedPanelIdAtom, remaining[newIdx]?.id ?? null)
+    }
+
+    // Record for Cmd+Shift+T reopen — per-workspace LIFO.
+    const wsId = get(windowWorkspaceIdAtom)
+    if (wsId) {
+      const map = get(closedPanelRoutesByWorkspaceAtom)
+      set(closedPanelRoutesByWorkspaceAtom, pushClosedRoute(map, wsId, removed.route))
     }
   }
 )
@@ -342,6 +354,47 @@ export const focusPrevPanelAtom = atom(
 
 /** Root route for the All Sessions panel — the implicit singleton per workspace. */
 export const ALL_SESSIONS_ROUTE: ViewRoute = routes.view.allSessions()
+
+/**
+ * Per-workspace LIFO of recently closed panel routes (for Cmd+Shift+T reopen).
+ * Not persisted across sessions and capped to prevent unbounded growth when
+ * a user opens/closes lots of panels.
+ */
+export const closedPanelRoutesByWorkspaceAtom = atom<Record<string, ViewRoute[]>>({})
+
+const CLOSED_PANEL_CAP = 10
+
+/**
+ * Push a closed route onto the per-workspace LIFO, returning the updated map.
+ * Root (All Sessions) is excluded — reopening it makes no sense because it's
+ * pinned and always present.
+ */
+function pushClosedRoute(
+  map: Record<string, ViewRoute[]>,
+  wsId: string,
+  route: ViewRoute,
+): Record<string, ViewRoute[]> {
+  if (route === ALL_SESSIONS_ROUTE) return map
+  const current = map[wsId] ?? []
+  const next = [route, ...current].slice(0, CLOSED_PANEL_CAP)
+  return { ...map, [wsId]: next }
+}
+
+/**
+ * Pop the most recently closed route for the active workspace and re-open
+ * it as a new panel at the end of the stack. No-op when the LIFO is empty
+ * or there is no active workspace.
+ */
+export const reopenLastClosedPanelAtom = atom(null, (get, set) => {
+  const wsId = get(windowWorkspaceIdAtom)
+  if (!wsId) return
+  const map = get(closedPanelRoutesByWorkspaceAtom)
+  const queue = map[wsId] ?? []
+  if (queue.length === 0) return
+  const [head, ...rest] = queue
+  set(closedPanelRoutesByWorkspaceAtom, { ...map, [wsId]: rest })
+  set(pushPanelAtom, { route: head })
+})
 
 /**
  * Initialize the active workspace's panel stack if it's empty, by opening

@@ -174,6 +174,13 @@ export const actions = {
     defaultHotkey: 'mod+shift+[',
     category: 'Navigation',
   },
+  'panel.reopenLastClosed': {
+    id: 'panel.reopenLastClosed',
+    label: 'Reopen Last Closed Panel',
+    description: 'Reopen the most recently closed panel in this workspace',
+    defaultHotkey: 'mod+shift+t',
+    category: 'Navigation',
+  },
 
   // ═══════════════════════════════════════════
   // Chat
