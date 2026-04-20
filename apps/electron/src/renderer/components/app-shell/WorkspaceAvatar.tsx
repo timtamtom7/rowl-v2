@@ -28,8 +28,8 @@ export function workspaceAvatarClasses({
   isDragging,
 }: { isActive: boolean; isDragging: boolean }): string {
   return cn(
-    'transition-[border-radius,box-shadow] duration-150 overflow-hidden w-11 h-11',
-    isActive ? 'rounded-[14px]' : 'rounded-[22px] group-hover:rounded-[14px]',
+    'transition-[border-radius,box-shadow] duration-150 overflow-hidden w-9 h-9',
+    isActive ? 'rounded-[12px]' : 'rounded-[18px] group-hover:rounded-[12px]',
     isDragging && 'shadow-lg',
   );
 }
@@ -55,7 +55,7 @@ export function WorkspaceAvatar({
 }: WorkspaceAvatarProps) {
   const autoColor = useWorkspaceAutoColor(workspace.id);
   const fallbackPattern = React.useMemo(
-    () => (iconUrl ? null : generateWorkspacePattern(workspace.id, autoColor, 44)),
+    () => (iconUrl ? null : generateWorkspacePattern(workspace.id, autoColor, 36)),
     [iconUrl, workspace.id, autoColor],
   );
   const displayUrl = iconUrl ?? fallbackPattern ?? '';
@@ -101,17 +101,19 @@ export function WorkspaceAvatar({
           </span>
         </button>
       </TooltipTrigger>
-      <TooltipContent
-        side="right"
-        sideOffset={8}
-        className={cn(
-          'z-50 overflow-hidden rounded-[8px] px-2.5 py-1.5 text-xs',
-          'dark bg-background/80 backdrop-blur-xl backdrop-saturate-150 border border-border/50 text-foreground shadow-md',
-          'animate-in fade-in-0 duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-75',
-        )}
-      >
-        {workspace.name}
-      </TooltipContent>
+      <TooltipPrimitive.Portal>
+        <TooltipContent
+          side="right"
+          sideOffset={8}
+          className={cn(
+            'z-[100] overflow-hidden rounded-[8px] px-2.5 py-1.5 text-xs',
+            'bg-popover border border-border/50 text-popover-foreground shadow-md',
+            'animate-in fade-in-0 duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-75',
+          )}
+        >
+          {workspace.name}
+        </TooltipContent>
+      </TooltipPrimitive.Portal>
     </Tooltip>
   );
 }

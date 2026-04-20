@@ -141,7 +141,7 @@ export function WorkspaceRail({
     <div
       data-testid="workspace-rail"
       className={cn(
-        'flex flex-col items-center w-[72px] shrink-0 h-full select-none',
+        'flex flex-col items-center w-16 shrink-0 h-full select-none border-r border-border/30',
       )}
     >
 
@@ -175,27 +175,29 @@ export function WorkspaceRail({
               onClick={onCreate}
               aria-label="Add workspace"
               className={cn(
-                'flex items-center justify-center w-11 h-11',
-                'rounded-[22px] hover:rounded-[14px]',
+                'flex items-center justify-center w-9 h-9',
+                'rounded-[18px] hover:rounded-[12px]',
                 'border-2 border-dashed border-border text-muted-foreground',
                 'hover:border-foreground/40 hover:text-foreground',
                 'transition-[border-color,color,border-radius] duration-150',
               )}
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
             </button>
           </TooltipTrigger>
-          <TooltipContent
-            side="right"
-            sideOffset={8}
-            className={cn(
-              'z-50 overflow-hidden rounded-[8px] px-2.5 py-1.5 text-xs',
-              'dark bg-background/80 backdrop-blur-xl backdrop-saturate-150 border border-border/50 text-foreground shadow-md',
-              'animate-in fade-in-0 duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-75',
-            )}
-          >
-            Add workspace
-          </TooltipContent>
+          <TooltipPrimitive.Portal>
+            <TooltipContent
+              side="right"
+              sideOffset={8}
+              className={cn(
+                'z-[100] overflow-hidden rounded-[8px] px-2.5 py-1.5 text-xs',
+                'bg-popover border border-border/50 text-popover-foreground shadow-md',
+                'animate-in fade-in-0 duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-75',
+              )}
+            >
+              Add workspace
+            </TooltipContent>
+          </TooltipPrimitive.Portal>
         </Tooltip>
       </div>
     </div>

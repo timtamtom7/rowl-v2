@@ -58,6 +58,8 @@ import {
   ContextMenu,
   ContextMenuTrigger,
   StyledContextMenuContent,
+  StyledContextMenuItem,
+  StyledContextMenuSeparator,
 } from "@/components/ui/styled-context-menu"
 import { ContextMenuProvider } from "@/components/ui/menu-context"
 import { SidebarMenu } from "./SidebarMenu"
@@ -841,15 +843,36 @@ function AppShellContent({
 
   // Workspace rail: creation screen + context menu
   const [showWorkspaceCreation, setShowWorkspaceCreation] = React.useState(false)
+  const [railContextWorkspaceId, setRailContextWorkspaceId] = React.useState<string | null>(null)
 
+  // Record which workspace was right-clicked so the ContextMenu content knows.
+  // Do NOT call e.preventDefault() here — Radix ContextMenu needs the native
+  // contextmenu event to trigger its Portal overlay correctly.
   const handleWorkspaceRailContextMenu = React.useCallback(
-    (_workspaceId: string, e: React.MouseEvent) => {
-      e.preventDefault()
-      // v1: context menu is a follow-up task (rename / open folder / set icon / remove).
-      // The left-click-to-select behavior is the load-bearing feature for v1.
+    (workspaceId: string, _e: React.MouseEvent) => {
+      setRailContextWorkspaceId(workspaceId)
     },
     [],
   )
+
+  const railContextWorkspace = React.useMemo(
+    () => workspaces.find((w) => w.id === railContextWorkspaceId) ?? null,
+    [workspaces, railContextWorkspaceId],
+  )
+
+  const handleRailContextReveal = React.useCallback(() => {
+    if (!railContextWorkspace?.rootPath) return
+    window.electronAPI.showInFolder(railContextWorkspace.rootPath)
+  }, [railContextWorkspace])
+
+  const handleRailContextRemove = React.useCallback(() => {
+    if (!railContextWorkspaceId) return
+    window.electronAPI.removeWorkspace(railContextWorkspaceId).then(() => {
+      onRefreshWorkspaces?.()
+    }).catch((err: unknown) => {
+      console.error('[AppShell] removeWorkspace failed', err)
+    })
+  }, [railContextWorkspaceId, onRefreshWorkspaces])
 
   // Whether local MCP servers are enabled (affects stdio source status)
   const [localMcpEnabled, setLocalMcpEnabled] = React.useState(true)
@@ -2190,14 +2213,33 @@ function AppShellContent({
   return (
     <AppShellProvider value={appShellContextValue}>
       <div className="flex h-full w-full">
-        <WorkspaceRail
-          workspaces={workspaces}
-          activeWorkspaceId={activeWorkspaceId}
-          workspaceUnreadMap={workspaceUnreadMap}
-          onSelect={(id) => { void onSelectWorkspace(id) }}
-          onCreate={() => setShowWorkspaceCreation(true)}
-          onContextMenu={(id, e) => handleWorkspaceRailContextMenu(id, e)}
-        />
+        <ContextMenu modal={false}>
+          <ContextMenuTrigger asChild>
+            <div className="contents">
+              <WorkspaceRail
+                workspaces={workspaces}
+                activeWorkspaceId={activeWorkspaceId}
+                workspaceUnreadMap={workspaceUnreadMap}
+                onSelect={(id) => { void onSelectWorkspace(id) }}
+                onCreate={() => setShowWorkspaceCreation(true)}
+                onContextMenu={(id, e) => handleWorkspaceRailContextMenu(id, e)}
+              />
+            </div>
+          </ContextMenuTrigger>
+          <StyledContextMenuContent>
+            {railContextWorkspace?.rootPath && (
+              <StyledContextMenuItem onClick={handleRailContextReveal}>
+                <FolderOpen className="h-3.5 w-3.5" />
+                Reveal in Finder
+              </StyledContextMenuItem>
+            )}
+            {railContextWorkspace?.rootPath && <StyledContextMenuSeparator />}
+            <StyledContextMenuItem variant="destructive" onClick={handleRailContextRemove}>
+              <Trash2 className="h-3.5 w-3.5" />
+              Remove workspace
+            </StyledContextMenuItem>
+          </StyledContextMenuContent>
+        </ContextMenu>
         <div className="flex flex-col flex-1 min-w-0">
         {/* === TOP BAR === */}
         <TopBar

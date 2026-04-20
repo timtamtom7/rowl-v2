@@ -2,15 +2,15 @@ import { describe, it, expect } from 'bun:test';
 import { workspaceAvatarClasses, railPillClasses } from '../WorkspaceAvatar';
 
 describe('workspaceAvatarClasses', () => {
-  it('uses rounded-[14px] when active', () => {
+  it('uses rounded-[12px] when active', () => {
     expect(workspaceAvatarClasses({ isActive: true, isDragging: false }))
-      .toContain('rounded-[14px]');
+      .toContain('rounded-[12px]');
   });
 
-  it('uses rounded-[22px] when idle', () => {
+  it('uses rounded-[18px] when idle', () => {
     const cls = workspaceAvatarClasses({ isActive: false, isDragging: false });
-    expect(cls).toContain('rounded-[22px]');
-    expect(cls).toContain('group-hover:rounded-[14px]');
+    expect(cls).toContain('rounded-[18px]');
+    expect(cls).toContain('group-hover:rounded-[12px]');
   });
 
   it('adds shadow-lg when dragging', () => {

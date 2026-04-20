@@ -403,8 +403,6 @@ export function TopBar({
             <WorkspaceBreadcrumb
               workspace={workspaces.find((w) => w.id === activeWorkspaceId) ?? null}
               sessionName={activeSessionName ?? null}
-              workspaces={workspaces}
-              onSelectWorkspace={onSelectWorkspace}
               onRenameSession={undefined}
             />
           </div>
