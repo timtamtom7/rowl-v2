@@ -24,6 +24,7 @@ import {
   Plus,
   Trash2,
   ExternalLink,
+  Columns3,
 } from 'lucide-react'
 import { useMenuComponents } from '@/components/ui/menu-context'
 import { getDocUrl, type DocFeature } from '@craft-agent/shared/docs/doc-links'
@@ -61,6 +62,8 @@ export interface SidebarMenuProps {
   viewId?: string
   /** Handler for "Delete View" action */
   onDeleteView?: (id: string) => void
+  /** Handler for "Open in New Panel" action - only for newSession type */
+  onOpenInNewPanel?: () => void
 }
 
 /**
@@ -83,19 +86,34 @@ export function SidebarMenu({
   onConfigureViews,
   viewId,
   onDeleteView,
+  onOpenInNewPanel,
 }: SidebarMenuProps) {
   const { t } = useTranslation()
 
   // Get menu components from context (works with both DropdownMenu and ContextMenu)
   const { MenuItem, Separator } = useMenuComponents()
 
-  // New Session: only shows "Open in New Window"
+  // New Session: "Open in New Panel" (primary) + "Open in New Window" (secondary).
+  // Panel creation is the more common action; window creation stays reachable but
+  // demoted below the separator. If no panel handler is wired, we still surface
+  // the window option so the menu is never empty.
   if (type === 'newSession') {
     return (
-      <MenuItem onClick={() => window.electronAPI.openUrl('craftagents://action/new-session?window=focused')}>
-        <AppWindow className="h-3.5 w-3.5" />
-        <span className="flex-1">{t("sidebarMenu.openInNewWindow")}</span>
-      </MenuItem>
+      <>
+        {onOpenInNewPanel && (
+          <>
+            <MenuItem onClick={onOpenInNewPanel}>
+              <Columns3 className="h-3.5 w-3.5" />
+              <span className="flex-1">{t("session.newSessionInPanel")}</span>
+            </MenuItem>
+            <Separator />
+          </>
+        )}
+        <MenuItem onClick={() => window.electronAPI.openUrl('craftagents://action/new-session?window=focused')}>
+          <AppWindow className="h-3.5 w-3.5" />
+          <span className="flex-1">{t("sidebarMenu.openInNewWindow")}</span>
+        </MenuItem>
+      </>
     )
   }
 

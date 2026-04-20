@@ -1,7 +1,7 @@
 # Rowl — Current State (Plans Front Door)
 
-**Last updated:** 2026-04-19 (sub-project #1 Phase 2 SHIPPED)
-**Current focus:** Sub-project #1 Phase 2 SHIPPED. Ready to merge `phase-2/memory-edit-tools` → main, then scope Phase 3 (reminder engine) or pivot to sub-project #2 (Paperclip organizing layer).
+**Last updated:** 2026-04-20 (sub-project #2 feature #1 "workspace rail" — SHIPPED, awaiting merge to main)
+**Current focus:** Sub-project #2 feature #1 (workspace rail replacement) — SHIPPED. Live Electron smoke passed through three polish rounds; final round (2026-04-20, commit `5f0ceaa`) landed glass LeftSidebar treatment, compact-mode `+` button, `newSession` menu primary/secondary restructure (Panel first, Window second), and a rounded shell clip-path so the rail↔topbar inside-L junction curves cleanly. Ready to merge `workspace-rail` → `main`.
 
 > **If you are a new session resuming Rowl work, read this file FIRST.**
 > It orients you in ~60 seconds and tells you what to read next.
@@ -27,13 +27,17 @@ All four are license-compatible (MIT / Apache-2.0). Reference clones live at `/U
 
 ## Where we are right now
 
-- **Sub-project:** #1 — Memory-first agent, Phase 2 (agent-editable memory via `core_memory_replace` / `core_memory_append`)
-- **Phase status:** SHIPPED 2026-04-19. All 12 planned tasks implemented. 55+ memory tests green across `packages/shared` and `packages/session-tools-core` (writeBlockAtomic, appendHistory, replaceInBlock, appendToBlock, handler fallback resolution). `bun run tsc --noEmit` clean for Phase 2 files (package-wide noise from missing `tsconfig.base.json` pre-exists from fork — tracked separately). `bun run electron:build` exits 0. **Live UI smoke PASSED 2026-04-19 19:49 local** in `~/Downloads/superpowers` workspace: agent called `core_memory_append` ("My name is Mario and I prefer concise prose.") then `core_memory_replace` ("Actually, on second thought — I prefer bullet-point replies."). Verified on disk: `human.md` contains `"Name is Mario. Prefers bullet-point replies."` and `memory/.history.jsonl` shows exactly two entries (one append, one replace) with correct timestamps.
-- **Spec:** `docs/plans/rowl-memory-first/PHASE-2-SPEC.md`
-- **Plan:** `docs/plans/rowl-memory-first/PHASE-2-PLAN.md`
-- **Branch:** `phase-2/memory-edit-tools` (13 commits ahead of `phase-1/memory-blocks`, no remote; ready to merge).
-- **Next:** Merge `phase-2/memory-edit-tools` → main via `superpowers:finishing-a-development-branch`, then brainstorm sub-project #2 (Paperclip organizing layer — starting with workspace rail replacement).
-- **Blocker:** none.
+- **Sub-project:** #2 — Organizing layer (Paperclip-style), feature #1 "Workspace Rail" replacing the topbar workspace dropdown with an always-visible 72px left rail + compact breadcrumb.
+- **Feature status:** SHIPPED 2026-04-20. Branch `workspace-rail` now 13 commits ahead of base after three live-smoke polish rounds (commits `89195d5`, `44d6645`, `5f0ceaa`). Round 3 landed: glass LeftSidebar (`bg-muted/60 backdrop-blur-xl` + `RADIUS_EDGE` on left corners, `RADIUS_INNER` on right), compact-mode `+` button in TopBar for narrow windows (<768px), `newSession` context menu reshuffled to surface "New Session in Panel" (primary, `Columns3` icon) above "Open in New Window", `shellRef` wrapper switched from `height: 100%` to `flex: 1` with `clip-path: inset(0 round 14 0 0 14)` so the rail↔topbar inside-L junction curves cleanly (bottom junction clips less visibly due to `paddingBottom: 6` on shellRef — accepted by user). Rail `border-r` divider removed; rail + sidebar now blend via vibrancy.
+- **Spec:** `docs/plans/workspace-rail/SPEC.md`
+- **Plan:** `docs/plans/workspace-rail/PLAN.md`
+- **Branch:** `workspace-rail`, 13 commits, no remote.
+- **Next:** Merge `workspace-rail` → `main` via `superpowers:finishing-a-development-branch`. Then continue into the three brainstorm topics in the queue: (a) multi-panel breadcrumbs + All Sessions panel↔dropdown toggle, (b) right sidebar redesign (glass detached overlay + workspace settings UI + memory UI), (c) planner/executor two-model architecture (sub-project #3).
+- **Blocker:** None.
+
+## Previous focus (closed)
+
+- **Sub-project #1 Phase 2 SHIPPED 2026-04-19** — merged to `main` at commit `7660463` (`merge: sub-project #1 Phase 2 — agent-editable memory tools`). Live UI smoke PASSED 2026-04-19 19:49 local in `~/Downloads/superpowers` workspace: agent called `core_memory_append` then `core_memory_replace`; `human.md` + `memory/.history.jsonl` verified on disk.
 
 ## Last session handoff
 
@@ -65,7 +69,7 @@ These existed at fork time; we accepted them rather than pre-fixing upstream tec
 |---|-----------|--------|----------------|
 | 0 | Bootstrap (fork craft-agents → rebrand → docs convention) | shipped | Must establish the base before any features. |
 | 1 | Memory-first agent (Letta pattern port) | Phase 1 shipped 2026-04-18; Phase 2 shipped 2026-04-19 | Foundational. Every subsequent feature behaves differently with memory. |
-| 2 | Organizing layer (Paperclip-style goals/issues/docs) | not-started | Gives "why are we doing this" structure on top of memory. |
+| 2 | Organizing layer (Paperclip-style goals/issues/docs) | in progress — feature #1 (workspace rail) SHIPPED 2026-04-20; brainstorm queue: breadcrumbs + panel↔dropdown toggle, right sidebar redesign | Gives "why are we doing this" structure on top of memory. |
 | 3 | t3code cherry-picks (checkpoints, worktrees, stacked PRs) | not-started | High-value, self-contained adds. |
 | 4 | Research/review UX polish | not-started | Surfaces #2's data model as real research workflow UI. |
 
@@ -102,6 +106,9 @@ These existed at fork time; we accepted them rather than pre-fixing upstream tec
 - **2026-04-19** — Gray-matter cache quirk fix locked in `replaceInBlock.ts` and `appendToBlock.ts`: always pass an options object (`matter(raw, {})`) when parsing. Root cause: gray-matter caches by content **before** calling `parseMatter`, so a second parse of identical malformed YAML returns the cached (partially-mutated) result without re-throwing, which silently bypasses our `try/catch` `PARSE_ERROR` branch. Passing any options object disables the cache path per gray-matter's own source comment.
 - **2026-04-19** — Memory-tool handler working-directory resolution order locked: `ctx.workingDirectory ?? resolveSessionWorkingDirectory(...) ?? resolveSessionWorkspaceRoot(...)`. The third fallback reads the session.jsonl header's `workspaceRootPath` (tilde-expanded) and is required because the "Open folder" flow does not set a per-session `workingDirectory`. Matches Phase 1's block materialization which uses `workspace.rootPath`, so tools and defaults agree on where memory lives. Covered by 4 new integration tests in `core-memory-tools.integration.test.ts`.
 - **2026-04-19** — Memory-tool routing in system prompt locked: system prompt `packages/shared/src/prompts/system.ts` includes a "Memory Blocks" section BEFORE "User preferences" that maps natural-language triggers ("my name is", "remember this", etc.) to `core_memory_append` / `core_memory_replace`. Without this, agent was falling through to the legacy `update_user_preferences` tool and hallucinating saves. Tool descriptions in `tool-defs.ts` also carry explicit imperative triggers and a "never claim to have saved without calling this tool" guardrail.
+- **2026-04-19** — Sub-project #2 feature #1 "workspace rail" scope locked: 72px always-visible left rail replaces the topbar `WorkspaceSwitcher` dropdown. Hybrid icon strategy — real `iconUrl` field if set, else deterministic Bayer-matrix pattern generated from `workspaceId` hash. Auto-assigned color from a 12-hue Tailwind palette, also hashed from `workspaceId` (pure function, no persistence). Drag-to-reorder persisted in `UserPreferences.workspaceRailOrder: string[]` inside the existing preferences JSON on disk; reconciler runs on every render to add new workspaces to the tail and drop ids whose workspaces no longer exist (handles cross-window/out-of-process edits). Compact `{WorkspaceName} › {SessionName}` breadcrumb in topbar replaces the old dropdown; workspace half is the switcher menu, session half is a rename button (wired only if `onRenameSession` is supplied). V1 does NOT ship a right-click context menu on rail avatars — right-click handler is a documented no-op TODO; left-click-to-select + `+`-button-to-create are the load-bearing v1 surfaces. Keyboard drag support intentionally deferred (only `MouseSensor` registered). Dnd-kit (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`) chosen over HTML5 drag API for reliable animation + keyboard affordance when we add it later.
+- **2026-04-19** — Workspace-rail test strategy locked: bun-test can NOT load components that transitively import from `@craft-agent/ui`'s barrel (it pulls in a Vite-only `?url` PDF worker that bun-test refuses). Workaround: pure-logic helpers live in sibling `.helpers.ts` files (`WorkspaceBreadcrumb.helpers.ts`) or exported from the component itself (`computeOrderAfterDrag` in `WorkspaceRail.tsx`); tests import ONLY those pure helpers. RTL-style component tests are out of scope for this feature — live Electron smoke (Task 10) is the acceptance criterion for rendered behavior. Tooltip usages inside rail components import `@radix-ui/react-tooltip` directly (not `@/components/ui/tooltip`) to avoid the same barrel issue.
+- **2026-04-20** — Shell rounded-corner approach locked: the two inside-L corners where WorkspaceRail meets TopBar (top) and window bottom (bottom) are rounded via `clip-path: inset(0 0 0 0 round ${RADIUS_EDGE}px 0 0 ${RADIUS_EDGE}px)` on the `shellRef` wrapper. Tried first with `border-radius` + `overflow: clip` / `overflow: hidden` — those DIDN'T visibly clip, likely because descendants (PanelStackContainer has inner `overflow: auto` with `position: sticky` sidebar) establish their own scroll/stacking contexts that escape overflow-based clipping. `clip-path` is unambiguous and works. Also switched `shellRef` from `height: 100%` to `flex: 1 + minHeight: 0` so the rounded top corner lands at the actual visible top edge rather than being pushed offscreen behind the topbar by the 100% overflow. Bottom junction rounds less visibly because `shellRef` has `paddingBottom: 6`, so the clip happens 6px below the panels' bottom edge — user accepted this trade-off.
 
 ## Update discipline (non-negotiable)
 

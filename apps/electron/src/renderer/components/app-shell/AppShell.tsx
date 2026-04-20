@@ -35,6 +35,7 @@ import {
 // SessionStatusIcons no longer used - icons come from dynamic sessionStatuses
 import { SourceAvatar } from "@/components/ui/source-avatar"
 import { TopBar } from "./TopBar"
+import { WorkspaceRail } from './WorkspaceRail'
 import { SquarePenRounded } from "../icons/SquarePenRounded"
 import { McpIcon } from "../icons/McpIcon"
 import { cn } from "@/lib/utils"
@@ -57,6 +58,8 @@ import {
   ContextMenu,
   ContextMenuTrigger,
   StyledContextMenuContent,
+  StyledContextMenuItem,
+  StyledContextMenuSeparator,
 } from "@/components/ui/styled-context-menu"
 import { ContextMenuProvider } from "@/components/ui/menu-context"
 import { SidebarMenu } from "./SidebarMenu"
@@ -122,6 +125,7 @@ import { useAutomations } from "@/hooks/useAutomations"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { PanelHeader } from "./PanelHeader"
 import { SendToWorkspaceDialog } from "./SendToWorkspaceDialog"
+import { WorkspaceCreationScreen } from "@/components/workspace"
 import { EditPopover, getEditConfig, type EditContextKey } from "@/components/ui/EditPopover"
 import SettingsNavigator from "@/pages/settings/SettingsNavigator"
 import {
@@ -837,6 +841,39 @@ function AppShellContent({
     getAutomationHistory, handleReplayAutomation,
   } = useAutomations(activeWorkspaceId)
 
+  // Workspace rail: creation screen + context menu
+  const [showWorkspaceCreation, setShowWorkspaceCreation] = React.useState(false)
+  const [railContextWorkspaceId, setRailContextWorkspaceId] = React.useState<string | null>(null)
+
+  // Record which workspace was right-clicked so the ContextMenu content knows.
+  // Do NOT call e.preventDefault() here — Radix ContextMenu needs the native
+  // contextmenu event to trigger its Portal overlay correctly.
+  const handleWorkspaceRailContextMenu = React.useCallback(
+    (workspaceId: string, _e: React.MouseEvent) => {
+      setRailContextWorkspaceId(workspaceId)
+    },
+    [],
+  )
+
+  const railContextWorkspace = React.useMemo(
+    () => workspaces.find((w) => w.id === railContextWorkspaceId) ?? null,
+    [workspaces, railContextWorkspaceId],
+  )
+
+  const handleRailContextReveal = React.useCallback(() => {
+    if (!railContextWorkspace?.rootPath) return
+    window.electronAPI.showInFolder(railContextWorkspace.rootPath)
+  }, [railContextWorkspace])
+
+  const handleRailContextRemove = React.useCallback(() => {
+    if (!railContextWorkspaceId) return
+    window.electronAPI.removeWorkspace(railContextWorkspaceId).then(() => {
+      onRefreshWorkspaces?.()
+    }).catch((err: unknown) => {
+      console.error('[AppShell] removeWorkspace failed', err)
+    })
+  }, [railContextWorkspaceId, onRefreshWorkspaces])
+
   // Whether local MCP servers are enabled (affects stdio source status)
   const [localMcpEnabled, setLocalMcpEnabled] = React.useState(true)
 
@@ -1318,6 +1355,11 @@ function AppShellContent({
   const activeSessionMetas = useMemo(() => {
     return workspaceSessionMetas.filter(s => !s.isArchived)
   }, [workspaceSessionMetas])
+
+  const activeSessionName = React.useMemo(() => {
+    const s = activeSessionMetas.find((x) => x.id === effectiveSessionId)
+    return s ? getSessionTitle(s) : null
+  }, [activeSessionMetas, effectiveSessionId])
 
   const refreshWorkspaceUnreadMap = useCallback(async () => {
     try {
@@ -2170,6 +2212,35 @@ function AppShellContent({
 
   return (
     <AppShellProvider value={appShellContextValue}>
+      <div className="flex h-full w-full">
+        <ContextMenu modal={false}>
+          <ContextMenuTrigger asChild>
+            <div className="contents">
+              <WorkspaceRail
+                workspaces={workspaces}
+                activeWorkspaceId={activeWorkspaceId}
+                workspaceUnreadMap={workspaceUnreadMap}
+                onSelect={(id) => { void onSelectWorkspace(id) }}
+                onCreate={() => setShowWorkspaceCreation(true)}
+                onContextMenu={(id, e) => handleWorkspaceRailContextMenu(id, e)}
+              />
+            </div>
+          </ContextMenuTrigger>
+          <StyledContextMenuContent>
+            {railContextWorkspace?.rootPath && (
+              <StyledContextMenuItem onClick={handleRailContextReveal}>
+                <FolderOpen className="h-3.5 w-3.5" />
+                Reveal in Finder
+              </StyledContextMenuItem>
+            )}
+            {railContextWorkspace?.rootPath && <StyledContextMenuSeparator />}
+            <StyledContextMenuItem variant="destructive" onClick={handleRailContextRemove}>
+              <Trash2 className="h-3.5 w-3.5" />
+              Remove workspace
+            </StyledContextMenuItem>
+          </StyledContextMenuContent>
+        </ContextMenu>
+        <div className="flex flex-col flex-1 min-w-0">
         {/* === TOP BAR === */}
         <TopBar
           workspaces={workspaces}
@@ -2179,6 +2250,7 @@ function AppShellContent({
           onWorkspaceCreated={() => onRefreshWorkspaces?.()}
           onWorkspaceRemoved={() => onRefreshWorkspaces?.()}
           activeSessionId={effectiveSessionId}
+          activeSessionName={activeSessionName}
           onNewChat={() => handleNewChat()}
           onNewWindow={() => window.electronAPI.menuNewWindow()}
           onOpenSettings={onOpenSettings}
@@ -2200,7 +2272,21 @@ function AppShellContent({
       <div
         ref={shellRef}
         className="flex items-stretch relative"
-        style={{ height: '100%', paddingRight: PANEL_EDGE_INSET, paddingBottom: PANEL_EDGE_INSET, paddingLeft: 0, gap: PANEL_GAP }}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          paddingRight: PANEL_EDGE_INSET,
+          paddingBottom: PANEL_EDGE_INSET,
+          paddingLeft: 0,
+          gap: PANEL_GAP,
+          // Round the two inside-L corners where the WorkspaceRail meets the
+          // TopBar above and the window bottom below. Using `clip-path` rather
+          // than `overflow: hidden` + `border-radius` because the latter can
+          // fail to clip when descendants establish their own scroll contexts
+          // or stacking contexts (PanelStackContainer has its own overflow:auto
+          // with position:sticky children). clip-path is unambiguous.
+          clipPath: `inset(0 0 0 0 round ${RADIUS_EDGE}px 0 0 ${RADIUS_EDGE}px)`,
+        }}
       >
         <PanelStackContainer
           sidebarSlot={
@@ -2216,7 +2302,7 @@ function AppShellContent({
               {/* Sidebar Top Section */}
               <div className="flex-1 flex flex-col min-h-0">
                 {/* New Session Button - Gmail-style, with context menu for "Open in New Window" */}
-                <div className="px-2 pb-2 shrink-0">
+                <div className="px-2 pt-3 pb-2 shrink-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div>
@@ -2234,7 +2320,7 @@ function AppShellContent({
                           </ContextMenuTrigger>
                           <StyledContextMenuContent>
                             <ContextMenuProvider>
-                              <SidebarMenu type="newSession" />
+                              <SidebarMenu type="newSession" onOpenInNewPanel={() => handleNewChat(true)} />
                             </ContextMenuProvider>
                           </StyledContextMenuContent>
                         </ContextMenu>
@@ -3517,6 +3603,19 @@ function AppShellContent({
         onTransferComplete={handleTransferComplete}
       />
 
+      {showWorkspaceCreation && (
+        <WorkspaceCreationScreen
+          onClose={() => setShowWorkspaceCreation(false)}
+          onWorkspaceCreated={(ws) => {
+            setShowWorkspaceCreation(false)
+            onRefreshWorkspaces?.()
+            void onSelectWorkspace(ws.id)
+          }}
+        />
+      )}
+
+        </div>{/* end flex-col flex-1 min-w-0 */}
+      </div>{/* end flex h-full w-full */}
     </AppShellProvider>
   )
 }

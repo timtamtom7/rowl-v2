@@ -125,6 +125,12 @@ export function PanelStackContainer({
         style={{ gap: PANEL_GAP, flexGrow: 1, minWidth: 0 }}
       >
         {/* === SIDEBAR SLOT === */}
+        {/* position: sticky; left: 0 keeps the sidebar anchored to the left
+            viewport edge when the panel row scrolls horizontally.
+            Glass treatment: translucent bg + backdrop-blur so it feels
+            connected to the rail's vibrancy (both let the macOS blur
+            through) while still being dense enough to prevent panel
+            content from bleeding through during horizontal scroll. */}
         <motion.div
           data-panel-role="sidebar"
           initial={false}
@@ -134,8 +140,18 @@ export function PanelStackContainer({
             opacity: hasSidebar ? 1 : 0,
           }}
           transition={transition}
-          className="h-full relative shrink-0"
-          style={{ overflowX: 'clip', overflowY: 'visible' }}
+          className="h-full relative shrink-0 bg-muted/60 backdrop-blur-xl"
+          style={{
+            overflowX: 'clip',
+            overflowY: 'visible',
+            position: 'sticky',
+            left: 0,
+            zIndex: 10,
+            borderTopLeftRadius: RADIUS_EDGE,
+            borderBottomLeftRadius: RADIUS_EDGE,
+            borderTopRightRadius: RADIUS_INNER,
+            borderBottomRightRadius: RADIUS_INNER,
+          }}
         >
           <div className="h-full" style={{ width: sidebarWidth }}>
             {sidebarSlot}

@@ -34,6 +34,8 @@ export interface UserPreferences {
   diffViewer?: DiffViewerPreferences;
   // Whether to include Co-Authored-By trailer on git commits (default: true)
   includeCoAuthoredBy?: boolean;
+  /** Ordered list of workspace IDs for the left rail (set by drag-reorder in the UI). */
+  workspaceRailOrder?: string[];
   // When the preferences were last updated
   updatedAt?: number;
 }
