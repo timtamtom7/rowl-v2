@@ -448,11 +448,17 @@ export function useOnboarding({
       // Validate connection by spawning a lightweight subprocess test.
       // Custom endpoint protocol routes through PiAgent at runtime, so test with Pi too.
       const setupTestProvider = data.customEndpoint ? 'pi' : (isPiApiKeyFlow ? 'pi' : 'anthropic')
+      // Preflight uses the server-picked cheap/fast default model (e.g.
+      // gemini-2.5-flash for Google, claude-haiku for Anthropic) — validating
+      // with the user's expensive "best" tier is wasteful and, for Google's
+      // Preview models, outright fails on free-tier quotas. Custom endpoints
+      // have no server default, so we still pass the user's model there.
+      const preflightModel = data.customEndpoint ? data.models?.[0] : undefined
       const testResult = await window.electronAPI.testLlmConnectionSetup({
         provider: setupTestProvider,
         apiKey: data.apiKey,
         baseUrl: data.baseUrl,
-        model: data.models?.[0],
+        model: preflightModel,
         piAuthProvider: data.piAuthProvider,
         customEndpoint: data.customEndpoint,
       })
