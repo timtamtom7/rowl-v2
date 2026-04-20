@@ -71,7 +71,8 @@ import {
   AnimatedCollapsibleContent,
   springTransition as collapsibleSpring,
 } from "@/components/ui/collapsible"
-import { SessionList, type ChatGroupingMode } from "./SessionList"
+import { type ChatGroupingMode } from "./SessionList"
+import { AllSessionsView } from "./AllSessionsView"
 import { MainContentPanel } from "./MainContentPanel"
 import { PanelStackContainer } from "./PanelStackContainer"
 import type { ChatDisplayHandle } from "./ChatDisplay"
@@ -3285,9 +3286,11 @@ function AppShellContent({
             {isSessionsNavigation(navState) && (
               /* Sessions List */
               <>
-                {/* SessionList: Scrollable list of session cards */}
+                {/* AllSessionsView wraps SessionList; reusable so the same tree
+                    can mount in both the panel stack and a dropdown popover. */}
                 {/* Key on sidebarMode forces full remount when switching views, skipping animations */}
-                <SessionList
+                <AllSessionsView
+                  variant="panel"
                   key={sessionFilter?.kind}
                   items={searchActive ? workspaceSessionMetas : filteredSessionMetas}
                   onDelete={handleDeleteSession}
