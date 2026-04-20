@@ -77,6 +77,7 @@ import { PanelStackContainer } from "./PanelStackContainer"
 import type { ChatDisplayHandle } from "./ChatDisplay"
 import { LeftSidebar } from "./LeftSidebar"
 import { useSession } from "@/hooks/useSession"
+import { useAllSessionsDropdownModePersistence } from "@/hooks/useAllSessionsDropdownMode"
 import { ensureSessionMessagesLoadedAtom } from "@/atoms/sessions"
 import { AppShellProvider, type AppShellContextType } from "@/context/AppShellContext"
 import { EscapeInterruptProvider, useEscapeInterrupt } from "@/context/EscapeInterruptContext"
@@ -528,6 +529,10 @@ function AppShellContent({
   } = contextValue
 
   const { t } = useTranslation()
+
+  // Seed + persist the per-workspace All Sessions dropdown-mode preference.
+  // Fire-and-forget; no return value.
+  useAllSessionsDropdownModePersistence()
 
   // Get hotkey labels from centralized action registry
   const newChatHotkey = useActionLabel('app.newChat').hotkey
