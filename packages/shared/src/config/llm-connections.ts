@@ -451,7 +451,13 @@ export const PI_PREFERRED_DEFAULTS: Record<string, string[]> = {
   anthropic: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
   openai: ['gpt-5.2', 'gpt-5.1', 'gpt-5', 'o4-mini', 'o3', 'gpt-4o'],
   'openai-codex': ['gpt-5.2', 'gpt-5.1', 'gpt-5', 'o4-mini', 'o3', 'gpt-4o'],
-  google: ['gemini-3-pro-preview', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite-preview', 'gemini-2.5-pro', 'gemini-2.5-flash'],
+  // Flash-first: the *first* entry is used as the preflight test model in
+  // testBackendConnection(). Preview / Pro models have much stricter
+  // free-tier quotas and can exceed the 45s timeout, producing "Rate limit
+  // exceeded" / "Connection test timed out" during onboarding. gemini-2.5-flash
+  // is fast, stable, and widely quota-available — safe default for the probe.
+  // Users still see the full list and can pick any model from Settings.
+  google: ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite-preview', 'gemini-2.5-pro', 'gemini-3-pro-preview'],
   'github-copilot': ['claude-sonnet-4-6', 'gpt-5', 'o4-mini', 'claude-haiku-4-5'],
   'amazon-bedrock': ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
 };

@@ -321,7 +321,10 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
         allowEmptyApiKey,
         model: testModel,
         baseUrl,
-        timeoutMs: 20000,
+        // 45s covers Pi subprocess startup + a Flash completion under slow
+        // networks. Preview / Pro models can still blow this budget — that's
+        // why PI_PREFERRED_DEFAULTS picks Flash first for the probe.
+        timeoutMs: 45000,
         hostRuntime: buildBackendHostRuntimeContext(deps.platform),
         connection: hint,
       })
