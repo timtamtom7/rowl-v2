@@ -7,6 +7,7 @@
 import { atom } from 'jotai'
 import { parseRouteToNavigationState } from '../../shared/route-parser'
 import type { ViewRoute } from '../../shared/routes'
+import { windowWorkspaceIdAtom } from './sessions'
 
 let nextPanelId = 0
 function generatePanelId(): string {
@@ -43,8 +44,43 @@ export interface PanelStackEntry {
   laneId: PanelLaneId
 }
 
-export const panelStackAtom = atom<PanelStackEntry[]>([])
-export const focusedPanelIdAtom = atom<string | null>(null)
+// Storage: per-workspace panel stacks. Key is workspace id.
+export const panelStackByWorkspaceAtom = atom<Record<string, PanelStackEntry[]>>({})
+export const focusedPanelIdByWorkspaceAtom = atom<Record<string, string | null>>({})
+
+/**
+ * Derived façade over `panelStackByWorkspaceAtom`. Reads/writes the slice for
+ * the active workspace (`windowWorkspaceIdAtom`). When no workspace is active,
+ * reads return `[]` and writes are no-ops — this matches "nothing to render".
+ */
+export const panelStackAtom = atom<PanelStackEntry[], [PanelStackEntry[]], void>(
+  (get) => {
+    const wsId = get(windowWorkspaceIdAtom)
+    if (!wsId) return []
+    return get(panelStackByWorkspaceAtom)[wsId] ?? []
+  },
+  (get, set, next) => {
+    const wsId = get(windowWorkspaceIdAtom)
+    if (!wsId) return
+    const map = get(panelStackByWorkspaceAtom)
+    set(panelStackByWorkspaceAtom, { ...map, [wsId]: next })
+  },
+)
+
+/** Derived façade for the focused panel id in the active workspace. */
+export const focusedPanelIdAtom = atom<string | null, [string | null], void>(
+  (get) => {
+    const wsId = get(windowWorkspaceIdAtom)
+    if (!wsId) return null
+    return get(focusedPanelIdByWorkspaceAtom)[wsId] ?? null
+  },
+  (get, set, next) => {
+    const wsId = get(windowWorkspaceIdAtom)
+    if (!wsId) return
+    const map = get(focusedPanelIdByWorkspaceAtom)
+    set(focusedPanelIdByWorkspaceAtom, { ...map, [wsId]: next })
+  },
+)
 
 export const panelCountAtom = atom((get) => get(panelStackAtom).length)
 

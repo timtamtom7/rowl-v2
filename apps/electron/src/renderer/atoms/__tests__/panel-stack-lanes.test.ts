@@ -8,6 +8,13 @@ import {
   updateFocusedPanelRouteAtom,
   type PanelStackEntry,
 } from '../panel-stack'
+import { windowWorkspaceIdAtom } from '../sessions'
+
+function createTestStore(): ReturnType<typeof createStore> {
+  const store = createStore()
+  store.set(windowWorkspaceIdAtom, 'test-ws')
+  return store
+}
 
 function getStack(store: ReturnType<typeof createStore>): PanelStackEntry[] {
   return store.get(panelStackAtom)
@@ -15,7 +22,7 @@ function getStack(store: ReturnType<typeof createStore>): PanelStackEntry[] {
 
 describe('panel stack single-lane behavior', () => {
   it('keeps insertion order for new panels', () => {
-    const store = createStore()
+    const store = createTestStore()
 
     store.set(pushPanelAtom, { route: 'allSessions/session/s1' })
     store.set(pushPanelAtom, { route: 'sources/source/github' })
@@ -30,7 +37,7 @@ describe('panel stack single-lane behavior', () => {
   })
 
   it('implicit navigation updates focused panel route', () => {
-    const store = createStore()
+    const store = createTestStore()
 
     store.set(pushPanelAtom, { route: 'allSessions/session/s1' })
     store.set(pushPanelAtom, { route: 'sources/source/github' })
@@ -48,7 +55,7 @@ describe('panel stack single-lane behavior', () => {
   })
 
   it('pushPanel afterIndex inserts immediately after the given panel', () => {
-    const store = createStore()
+    const store = createTestStore()
 
     store.set(pushPanelAtom, { route: 'allSessions/session/s1' })
     store.set(pushPanelAtom, { route: 'allSessions/session/s2' })
@@ -63,7 +70,7 @@ describe('panel stack single-lane behavior', () => {
   })
 
   it('reconcile focuses by focusedIndex first when duplicate routes exist', () => {
-    const store = createStore()
+    const store = createTestStore()
 
     const changed = store.set(reconcilePanelStackAtom, {
       entries: [
@@ -82,7 +89,7 @@ describe('panel stack single-lane behavior', () => {
   })
 
   it('reconcile no-op keeps focused index target with duplicate routes', () => {
-    const store = createStore()
+    const store = createTestStore()
 
     store.set(reconcilePanelStackAtom, {
       entries: [
