@@ -16,11 +16,17 @@
  * The right sidebar stays OUTSIDE this container.
  */
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { panelStackAtom, focusedPanelIdAtom, focusedSessionIdAtom } from '@/atoms/panel-stack'
+import {
+  panelStackAtom,
+  focusedPanelIdAtom,
+  focusedSessionIdAtom,
+  ALL_SESSIONS_ROUTE,
+} from '@/atoms/panel-stack'
+import { activeWorkspaceAllSessionsModeAtom } from '@/hooks/useAllSessionsDropdownMode'
 import { PanelSlot } from './PanelSlot'
 import { PanelResizeSash } from './PanelResizeSash'
 import {
@@ -59,8 +65,21 @@ export function PanelStackContainer({
   const panelStack = useAtomValue(panelStackAtom)
   const focusedPanelId = useAtomValue(focusedPanelIdAtom)
   const focusedSessionId = useAtomValue(focusedSessionIdAtom)
+  const allSessionsMode = useAtomValue(activeWorkspaceAllSessionsModeAtom)
 
-  const contentPanels = panelStack
+  // When the active workspace is in dropdown mode, hide the All Sessions root
+  // entry from the rendered panel stack — it lives in the breadcrumb popover
+  // instead. The atom still holds the entry so toggling back to panel mode
+  // restores it without recreating state (scroll pos, focus, etc.). When
+  // filtering, re-normalize proportions locally so the remaining panels
+  // expand to fill the space.
+  const contentPanels = useMemo(() => {
+    if (allSessionsMode !== 'dropdown') return panelStack
+    const filtered = panelStack.filter(p => p.route !== ALL_SESSIONS_ROUTE)
+    if (filtered.length === 0) return filtered
+    const total = filtered.reduce((s, p) => s + p.proportion, 0) || 1
+    return filtered.map(p => ({ ...p, proportion: p.proportion / total }))
+  }, [panelStack, allSessionsMode])
 
   // Compact mode: show list OR content based on the focused panel's ROUTE,
   // not just whether a panel exists. When the route has a session selected
