@@ -35,9 +35,9 @@ All four are license-compatible (MIT / Apache-2.0). Reference clones live at `/U
 - **Next:** User runs live Electron smoke (Task 10 checklist in PLAN.md) → if PASS, flip this section to SHIPPED + commit `docs(state): workspace rail SHIPPED` + merge to main via `superpowers:finishing-a-development-branch`. Then either continue sub-project #2 feature #2 (goals/issues data model) or loop back to merge the still-pending `phase-2/memory-edit-tools` branch.
 - **Blocker:** Requires user to launch Electron dev and click through smoke checklist — cannot be done by Claude autonomously.
 
-## Previous focus (still open)
+## Previous focus (closed)
 
-- **Sub-project #1 Phase 2 SHIPPED 2026-04-19** — code on branch `phase-2/memory-edit-tools` (13 commits, no remote). Live UI smoke PASSED 2026-04-19 19:49 local in `~/Downloads/superpowers` workspace: agent called `core_memory_append` then `core_memory_replace`; `human.md` + `memory/.history.jsonl` verified on disk. **Still needs merge to main** — deprioritized in favor of pivoting to sub-project #2.
+- **Sub-project #1 Phase 2 SHIPPED 2026-04-19** — merged to `main` at commit `7660463` (`merge: sub-project #1 Phase 2 — agent-editable memory tools`). Live UI smoke PASSED 2026-04-19 19:49 local in `~/Downloads/superpowers` workspace: agent called `core_memory_append` then `core_memory_replace`; `human.md` + `memory/.history.jsonl` verified on disk.
 
 ## Last session handoff
 
