@@ -73,6 +73,10 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.18.1"
+    "@happy-dom/global-registrator": "^15",
+    "@testing-library/dom": "^10",
+    "@testing-library/react": "^16",
+    "@types/ws": "^8.18.1",
+    "happy-dom": "^15"
   }
 }

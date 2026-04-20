@@ -1,1 +1,9 @@
 preload = ["./packages/shared/src/unified-network-interceptor.ts"]
+
+[test]
+# Keep the non-test preload (network interceptor) and add happy-dom for
+# component tests that import from `@testing-library/react`.
+preload = [
+  "./packages/shared/src/unified-network-interceptor.ts",
+  "./scripts/test-setup-dom.ts",
+]
