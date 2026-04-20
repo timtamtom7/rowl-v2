@@ -41,6 +41,7 @@ import { useEffect, useRef, useState } from "react"
 import { BrowserTabStrip } from "../browser/BrowserTabStrip"
 import type { Workspace } from "../../../shared/types"
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb"
+import type { PanelStackEntry } from "../../atoms/panel-stack"
 import { getDocUrl } from "@craft-agent/shared/docs/doc-links"
 
 // --- Menu rendering (moved from AppMenu) ---
@@ -146,7 +147,8 @@ interface TopBarProps {
   onWorkspaceCreated?: (workspace: Workspace) => void
   onWorkspaceRemoved?: () => void
   activeSessionId?: string | null
-  activeSessionName?: string | null
+  /** Resolves a human label for a panel (session title, source name, etc.). */
+  labelFor: (panel: PanelStackEntry) => string
   onNewChat: () => void
   onNewWindow?: () => void
   onOpenSettings: () => void
@@ -173,7 +175,7 @@ export function TopBar({
   onWorkspaceCreated,
   onWorkspaceRemoved,
   activeSessionId,
-  activeSessionName = null,
+  labelFor,
   onNewChat,
   onNewWindow,
   onOpenSettings,
@@ -402,8 +404,8 @@ export function TopBar({
           <div className="min-w-0 flex-1">
             <WorkspaceBreadcrumb
               workspace={workspaces.find((w) => w.id === activeWorkspaceId) ?? null}
-              sessionName={activeSessionName ?? null}
-              onRenameSession={undefined}
+              labelFor={labelFor}
+              onOpenAllSessionsDropdown={undefined}
             />
           </div>
 

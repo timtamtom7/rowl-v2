@@ -92,7 +92,7 @@ import type { Session, Workspace, FileAttachment, PermissionRequest, LoadedSourc
 import { sessionMetaMapAtom, sendToWorkspaceAtom, type SessionMeta } from "@/atoms/sessions"
 import { sourcesAtom } from "@/atoms/sources"
 import { skillsAtom } from "@/atoms/skills"
-import { panelStackAtom, panelCountAtom, focusedPanelIdAtom, focusedSessionIdAtom, focusNextPanelAtom, focusPrevPanelAtom, parseSessionIdFromRoute, ensureWorkspacePanelStackAtom } from "@/atoms/panel-stack"
+import { panelStackAtom, panelCountAtom, focusedPanelIdAtom, focusedSessionIdAtom, focusNextPanelAtom, focusPrevPanelAtom, parseSessionIdFromRoute, ensureWorkspacePanelStackAtom, type PanelStackEntry } from "@/atoms/panel-stack"
 import { type SessionStatusId, type SessionStatus, statusConfigsToSessionStatuses } from "@/config/session-status-config"
 import { useStatuses } from "@/hooks/useStatuses"
 import { useLabels } from "@/hooks/useLabels"
@@ -1367,10 +1367,31 @@ function AppShellContent({
     return workspaceSessionMetas.filter(s => !s.isArchived)
   }, [workspaceSessionMetas])
 
-  const activeSessionName = React.useMemo(() => {
-    const s = activeSessionMetas.find((x) => x.id === effectiveSessionId)
-    return s ? getSessionTitle(s) : null
-  }, [activeSessionMetas, effectiveSessionId])
+  // Resolves a human-readable label for a breadcrumb chip panel.
+  // Reads from activeSessionMetas (session titles) and sources (source display
+  // names). Falls back to fixed strings for settings/skills/other panels.
+  const labelForPanel = React.useCallback(
+    (panel: PanelStackEntry): string => {
+      if (panel.panelType === 'session') {
+        const id = parseSessionIdFromRoute(panel.route)
+        const meta = id ? activeSessionMetas.find((s) => s.id === id) : null
+        return meta ? getSessionTitle(meta) : 'Session'
+      }
+      if (panel.panelType === 'source') {
+        // Route shapes: `sources/source/{slug}` or `sources/{type}/source/{slug}`.
+        // Slug is the segment immediately following the literal 'source'.
+        const segments = panel.route.split('/')
+        const sourceIdx = segments.indexOf('source')
+        const slug = sourceIdx >= 0 && sourceIdx + 1 < segments.length ? segments[sourceIdx + 1] : null
+        const source = slug ? sources.find((s) => s.config.slug === slug) : null
+        return source?.config.name ?? 'Source'
+      }
+      if (panel.panelType === 'settings') return 'Settings'
+      if (panel.panelType === 'skills') return 'Skills'
+      return 'Panel'
+    },
+    [activeSessionMetas, sources],
+  )
 
   const refreshWorkspaceUnreadMap = useCallback(async () => {
     try {
@@ -2261,7 +2282,7 @@ function AppShellContent({
           onWorkspaceCreated={() => onRefreshWorkspaces?.()}
           onWorkspaceRemoved={() => onRefreshWorkspaces?.()}
           activeSessionId={effectiveSessionId}
-          activeSessionName={activeSessionName}
+          labelFor={labelForPanel}
           onNewChat={() => handleNewChat()}
           onNewWindow={() => window.electronAPI.menuNewWindow()}
           onOpenSettings={onOpenSettings}
