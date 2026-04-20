@@ -6,7 +6,7 @@
 
 import { atom } from 'jotai'
 import { parseRouteToNavigationState } from '../../shared/route-parser'
-import type { ViewRoute } from '../../shared/routes'
+import { routes, type ViewRoute } from '../../shared/routes'
 import { windowWorkspaceIdAtom } from './sessions'
 
 let nextPanelId = 0
@@ -339,3 +339,22 @@ export const focusPrevPanelAtom = atom(
     set(focusedPanelIdAtom, stack[prevIdx].id)
   }
 )
+
+/** Root route for the All Sessions panel — the implicit singleton per workspace. */
+export const ALL_SESSIONS_ROUTE: ViewRoute = routes.view.allSessions()
+
+/**
+ * Initialize the active workspace's panel stack if it's empty, by opening
+ * a single All Sessions entry. No-op otherwise. Idempotent.
+ */
+export const ensureWorkspacePanelStackAtom = atom(null, (get, set) => {
+  const wsId = get(windowWorkspaceIdAtom)
+  if (!wsId) return
+  const map = get(panelStackByWorkspaceAtom)
+  const existing = map[wsId]
+  if (existing && existing.length > 0) return
+  const entry = createEntry(ALL_SESSIONS_ROUTE, 1)
+  set(panelStackByWorkspaceAtom, { ...map, [wsId]: [entry] })
+  const focusMap = get(focusedPanelIdByWorkspaceAtom)
+  set(focusedPanelIdByWorkspaceAtom, { ...focusMap, [wsId]: entry.id })
+})
