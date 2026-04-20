@@ -2272,7 +2272,21 @@ function AppShellContent({
       <div
         ref={shellRef}
         className="flex items-stretch relative"
-        style={{ height: '100%', paddingRight: PANEL_EDGE_INSET, paddingBottom: PANEL_EDGE_INSET, paddingLeft: 0, gap: PANEL_GAP }}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          paddingRight: PANEL_EDGE_INSET,
+          paddingBottom: PANEL_EDGE_INSET,
+          paddingLeft: 0,
+          gap: PANEL_GAP,
+          // Round the two inside-L corners where the WorkspaceRail meets the
+          // TopBar above and the window bottom below. Using `clip-path` rather
+          // than `overflow: hidden` + `border-radius` because the latter can
+          // fail to clip when descendants establish their own scroll contexts
+          // or stacking contexts (PanelStackContainer has its own overflow:auto
+          // with position:sticky children). clip-path is unambiguous.
+          clipPath: `inset(0 0 0 0 round ${RADIUS_EDGE}px 0 0 ${RADIUS_EDGE}px)`,
+        }}
       >
         <PanelStackContainer
           sidebarSlot={
@@ -2288,7 +2302,7 @@ function AppShellContent({
               {/* Sidebar Top Section */}
               <div className="flex-1 flex flex-col min-h-0">
                 {/* New Session Button - Gmail-style, with context menu for "Open in New Window" */}
-                <div className="px-2 pb-2 shrink-0">
+                <div className="px-2 pt-3 pb-2 shrink-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div>
@@ -2306,7 +2320,7 @@ function AppShellContent({
                           </ContextMenuTrigger>
                           <StyledContextMenuContent>
                             <ContextMenuProvider>
-                              <SidebarMenu type="newSession" />
+                              <SidebarMenu type="newSession" onOpenInNewPanel={() => handleNewChat(true)} />
                             </ContextMenuProvider>
                           </StyledContextMenuContent>
                         </ContextMenu>

@@ -406,6 +406,21 @@ export function TopBar({
               onRenameSession={undefined}
             />
           </div>
+
+          {/* Compact-only: inline "+" to start a new session when the sidebar/navigator
+              (which normally host the New Session button) are auto-hidden below
+              the mobile threshold. Panels don't exist in compact mode, so this
+              directly creates a session rather than opening the add-panel menu. */}
+          {isCompact && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TopBarButton onClick={onNewChat} aria-label={t("menu.newChat")} className="-ml-2.5 mr-1 h-[26px] w-[26px] rounded-lg shrink-0">
+                  <Icons.Plus className="h-4 w-4 text-foreground/60" strokeWidth={1.5} />
+                </TopBarButton>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{t("menu.newChat")} {newChatHotkey}</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </div>
 

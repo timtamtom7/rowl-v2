@@ -141,7 +141,7 @@ export function WorkspaceRail({
     <div
       data-testid="workspace-rail"
       className={cn(
-        'flex flex-col items-center w-16 shrink-0 h-full select-none border-r border-border/30',
+        'flex flex-col items-center w-16 shrink-0 h-full select-none',
       )}
     >
 
