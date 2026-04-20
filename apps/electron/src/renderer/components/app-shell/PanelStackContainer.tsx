@@ -125,6 +125,8 @@ export function PanelStackContainer({
         style={{ gap: PANEL_GAP, flexGrow: 1, minWidth: 0 }}
       >
         {/* === SIDEBAR SLOT === */}
+        {/* position: sticky; left: 0 keeps the sidebar anchored to the left
+            viewport edge when the panel row scrolls horizontally. */}
         <motion.div
           data-panel-role="sidebar"
           initial={false}
@@ -135,7 +137,7 @@ export function PanelStackContainer({
           }}
           transition={transition}
           className="h-full relative shrink-0"
-          style={{ overflowX: 'clip', overflowY: 'visible' }}
+          style={{ overflowX: 'clip', overflowY: 'visible', position: 'sticky', left: 0, zIndex: 10 }}
         >
           <div className="h-full" style={{ width: sidebarWidth }}>
             {sidebarSlot}
