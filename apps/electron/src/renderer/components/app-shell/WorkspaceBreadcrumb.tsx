@@ -1,11 +1,7 @@
 import * as React from 'react';
 import { ChevronDown } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  StyledDropdownMenuContent,
-  StyledDropdownMenuItem,
-} from '@/components/ui/styled-dropdown';
+import { DropdownMenu, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { StyledDropdownMenuContent, StyledDropdownMenuItem } from '@/components/ui/styled-dropdown';
 import { cn } from '@/lib/utils';
 import { formatBreadcrumbText } from './WorkspaceBreadcrumb.helpers';
 import type { Workspace } from '../../../shared/types';
@@ -33,16 +29,19 @@ export function WorkspaceBreadcrumb({
   return (
     <div className="flex items-center gap-1 min-w-0">
       <DropdownMenu>
-        <DropdownMenuTrigger
-          className={cn(
-            'flex items-center gap-1 max-w-[240px] px-2 py-1 rounded-md',
-            'text-sm font-medium truncate hover:bg-accent',
-            'focus:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-          )}
-          aria-label="Switch workspace"
-        >
-          <span className="truncate">{workspaceName ?? 'No workspace'}</span>
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="Switch workspace"
+            className={cn(
+              'flex items-center gap-1 max-w-[240px] px-2 py-1 rounded-md',
+              'text-sm font-medium truncate hover:bg-accent',
+              'focus:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+            )}
+          >
+            <span className="truncate">{workspaceName ?? 'No workspace'}</span>
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </button>
         </DropdownMenuTrigger>
         <StyledDropdownMenuContent align="start" minWidth="min-w-56">
           {workspaces.map((w) => (

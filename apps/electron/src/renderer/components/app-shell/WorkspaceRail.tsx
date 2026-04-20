@@ -141,12 +141,9 @@ export function WorkspaceRail({
     <div
       data-testid="workspace-rail"
       className={cn(
-        'flex flex-col items-center w-[72px] shrink-0 h-full',
-        'bg-background border-r border-border/40',
+        'flex flex-col items-center w-[72px] shrink-0 h-full select-none',
       )}
     >
-      {/* Logo zone — non-interactive in v1 */}
-      <div className="flex items-center justify-center h-12 w-full shrink-0" />
 
       {/* Sortable avatar list */}
       <div className="flex-1 flex flex-col items-center gap-2 py-2 w-full overflow-y-auto overflow-x-hidden scrollbar-none">
@@ -188,7 +185,15 @@ export function WorkspaceRail({
               <Plus className="h-5 w-5" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8}>
+          <TooltipContent
+            side="right"
+            sideOffset={8}
+            className={cn(
+              'z-50 overflow-hidden rounded-[8px] px-2.5 py-1.5 text-xs',
+              'dark bg-background/80 backdrop-blur-xl backdrop-saturate-150 border border-border/50 text-foreground shadow-md',
+              'animate-in fade-in-0 duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-75',
+            )}
+          >
             Add workspace
           </TooltipContent>
         </Tooltip>
