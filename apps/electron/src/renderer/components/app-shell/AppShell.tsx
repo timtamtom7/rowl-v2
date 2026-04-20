@@ -78,7 +78,10 @@ import { PanelStackContainer } from "./PanelStackContainer"
 import type { ChatDisplayHandle } from "./ChatDisplay"
 import { LeftSidebar } from "./LeftSidebar"
 import { useSession } from "@/hooks/useSession"
-import { useAllSessionsDropdownModePersistence } from "@/hooks/useAllSessionsDropdownMode"
+import {
+  useAllSessionsDropdownModePersistence,
+  useActiveWorkspaceAllSessionsMode,
+} from "@/hooks/useAllSessionsDropdownMode"
 import { ensureSessionMessagesLoadedAtom } from "@/atoms/sessions"
 import { AppShellProvider, type AppShellContextType } from "@/context/AppShellContext"
 import { EscapeInterruptProvider, useEscapeInterrupt } from "@/context/EscapeInterruptContext"
@@ -534,6 +537,7 @@ function AppShellContent({
   // Seed + persist the per-workspace All Sessions dropdown-mode preference.
   // Fire-and-forget; no return value.
   useAllSessionsDropdownModePersistence()
+  const allSessionsMode = useActiveWorkspaceAllSessionsMode()
 
   // Lazy-init the active workspace's panel stack with All Sessions when empty.
   const ensureStack = useSetAtom(ensureWorkspacePanelStackAtom)
@@ -2247,6 +2251,69 @@ function AppShellContent({
     })
   }, [sessionFilter, labelCounts, activeWorkspace?.id, handleLabelClick, isExpanded, toggleExpanded, openConfigureLabels, handleAddLabel, handleDeleteLabel])
 
+  // Render helper used at two mount points (panel stack + topbar dropdown).
+  // Same prop bundle both times so the two modes feel like two views of the
+  // same state — filter, search, selected-session highlight all persist
+  // across the toggle (SPEC §Goals). The `remountKey` is panel-only: the
+  // panel stack remounts the subtree on filter change to skip animations;
+  // the dropdown has no equivalent chrome swap, so it stays mounted.
+  const renderAllSessionsView = (
+    variant: 'panel' | 'dropdown',
+    remountKey?: string | null,
+  ) => (
+    <AllSessionsView
+      key={remountKey ?? undefined}
+      variant={variant}
+      items={searchActive ? workspaceSessionMetas : filteredSessionMetas}
+      onDelete={handleDeleteSession}
+      onFlag={onFlagSession}
+      onUnflag={onUnflagSession}
+      onArchive={onArchiveSession}
+      onUnarchive={onUnarchiveSession}
+      onMarkUnread={onMarkSessionUnread}
+      onSessionStatusChange={onSessionStatusChange}
+      onRename={onRenameSession}
+      onFocusChatInput={(targetSessionId) => {
+        focusChatInputForSession(targetSessionId ?? focusedSessionId ?? session.selected)
+      }}
+      onSessionSelect={(selectedMeta) => {
+        navigateToSession(selectedMeta.id)
+      }}
+      onOpenInNewWindow={(selectedMeta) => {
+        if (activeWorkspaceId) {
+          window.electronAPI.openSessionInNewWindow(activeWorkspaceId, selectedMeta.id)
+        }
+      }}
+      onNavigateToView={(view) => {
+        if (view === 'allSessions') {
+          navigate(routes.view.allSessions())
+        } else if (view === 'flagged') {
+          navigate(routes.view.flagged())
+        }
+      }}
+      sessionOptions={sessionOptions}
+      searchActive={searchActive}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      onSearchClose={() => {
+        setSearchActive(false)
+        setSearchQuery('')
+      }}
+      sessionStatuses={effectiveSessionStatuses}
+      evaluateViews={evaluateViews}
+      labels={displayLabelConfigs}
+      onLabelsChange={handleSessionLabelsChange}
+      groupingMode={chatGroupingMode}
+      workspaceId={activeWorkspaceId ?? undefined}
+      statusFilter={listFilter}
+      labelFilterMap={labelFilter}
+      focusedSessionId={panelCount === 0 ? null : panelCount > 1 ? focusedSessionId : undefined}
+      onNavigateToSession={panelCount > 1 ? navigateToSessionInPanel : undefined}
+      hasPendingPrompt={hasPendingPrompt}
+      activeChatMatchInfo={chatMatchInfo}
+    />
+  )
+
   return (
     <AppShellProvider value={appShellContextValue}>
       <div className="flex h-full w-full">
@@ -2303,6 +2370,9 @@ function AppShellContent({
           onAddSessionPanel={() => handleNewChat(true)}
           onAddBrowserPanel={() => { void handleNewBrowserWindow() }}
           isCompact={isAutoCompact}
+          allSessionsDropdownBody={
+            allSessionsMode === 'dropdown' ? renderAllSessionsView('dropdown') : undefined
+          }
         />
 
       {/* === OUTER LAYOUT: Unified Panel Stack | Right Sidebar === */}
@@ -3288,63 +3358,9 @@ function AppShellContent({
               />
             )}
             {isSessionsNavigation(navState) && (
-              /* Sessions List */
-              <>
-                {/* AllSessionsView wraps SessionList; reusable so the same tree
-                    can mount in both the panel stack and a dropdown popover. */}
-                {/* Key on sidebarMode forces full remount when switching views, skipping animations */}
-                <AllSessionsView
-                  variant="panel"
-                  key={sessionFilter?.kind}
-                  items={searchActive ? workspaceSessionMetas : filteredSessionMetas}
-                  onDelete={handleDeleteSession}
-                  onFlag={onFlagSession}
-                  onUnflag={onUnflagSession}
-                  onArchive={onArchiveSession}
-                  onUnarchive={onUnarchiveSession}
-                  onMarkUnread={onMarkSessionUnread}
-                  onSessionStatusChange={onSessionStatusChange}
-                  onRename={onRenameSession}
-                  onFocusChatInput={(targetSessionId) => {
-                    focusChatInputForSession(targetSessionId ?? focusedSessionId ?? session.selected)
-                  }}
-                  onSessionSelect={(selectedMeta) => {
-                    navigateToSession(selectedMeta.id)
-                  }}
-                  onOpenInNewWindow={(selectedMeta) => {
-                    if (activeWorkspaceId) {
-                      window.electronAPI.openSessionInNewWindow(activeWorkspaceId, selectedMeta.id)
-                    }
-                  }}
-                  onNavigateToView={(view) => {
-                    if (view === 'allSessions') {
-                      navigate(routes.view.allSessions())
-                    } else if (view === 'flagged') {
-                      navigate(routes.view.flagged())
-                    }
-                  }}
-                  sessionOptions={sessionOptions}
-                  searchActive={searchActive}
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  onSearchClose={() => {
-                    setSearchActive(false)
-                    setSearchQuery('')
-                  }}
-                  sessionStatuses={effectiveSessionStatuses}
-                  evaluateViews={evaluateViews}
-                  labels={displayLabelConfigs}
-                  onLabelsChange={handleSessionLabelsChange}
-                  groupingMode={chatGroupingMode}
-                  workspaceId={activeWorkspaceId ?? undefined}
-                  statusFilter={listFilter}
-                  labelFilterMap={labelFilter}
-                  focusedSessionId={panelCount === 0 ? null : panelCount > 1 ? focusedSessionId : undefined}
-                  onNavigateToSession={panelCount > 1 ? navigateToSessionInPanel : undefined}
-                  hasPendingPrompt={hasPendingPrompt}
-                  activeChatMatchInfo={chatMatchInfo}
-                />
-              </>
+              /* Sessions List — rendered via the shared helper so the same
+                 AllSessionsView subtree mounts here and in the topbar dropdown. */
+              renderAllSessionsView('panel', sessionFilter?.kind)
             )}
             </div>
           }

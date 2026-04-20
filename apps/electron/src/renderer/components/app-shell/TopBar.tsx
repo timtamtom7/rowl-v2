@@ -165,6 +165,13 @@ interface TopBarProps {
   onAddBrowserPanel: () => void
   /** When true, hides controls that don't apply in compact/mobile layout */
   isCompact?: boolean
+  /**
+   * Body rendered inside the All Sessions dropdown popover (breadcrumb's
+   * first chip in dropdown mode). Supplied by AppShell with a fully-wired
+   * <AllSessionsView variant="dropdown" />. When `undefined`, the breadcrumb
+   * falls back to its built-in placeholder.
+   */
+  allSessionsDropdownBody?: React.ReactNode
 }
 
 export function TopBar({
@@ -191,6 +198,7 @@ export function TopBar({
   onAddSessionPanel,
   onAddBrowserPanel,
   isCompact,
+  allSessionsDropdownBody,
 }: TopBarProps) {
   const { t } = useTranslation()
   const [isDebugMode, setIsDebugMode] = useState(false)
@@ -405,6 +413,7 @@ export function TopBar({
             <WorkspaceBreadcrumb
               workspace={workspaces.find((w) => w.id === activeWorkspaceId) ?? null}
               labelFor={labelFor}
+              allSessionsDropdownBody={allSessionsDropdownBody}
             />
           </div>
 
