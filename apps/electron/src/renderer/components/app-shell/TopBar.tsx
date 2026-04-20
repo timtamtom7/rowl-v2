@@ -40,7 +40,7 @@ import { SquarePenRounded } from "../icons/SquarePenRounded"
 import { useEffect, useRef, useState } from "react"
 import { BrowserTabStrip } from "../browser/BrowserTabStrip"
 import type { Workspace } from "../../../shared/types"
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher"
+import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb"
 import { getDocUrl } from "@craft-agent/shared/docs/doc-links"
 
 // --- Menu rendering (moved from AppMenu) ---
@@ -146,6 +146,7 @@ interface TopBarProps {
   onWorkspaceCreated?: (workspace: Workspace) => void
   onWorkspaceRemoved?: () => void
   activeSessionId?: string | null
+  activeSessionName?: string | null
   onNewChat: () => void
   onNewWindow?: () => void
   onOpenSettings: () => void
@@ -172,6 +173,7 @@ export function TopBar({
   onWorkspaceCreated,
   onWorkspaceRemoved,
   activeSessionId,
+  activeSessionName = null,
   onNewChat,
   onNewWindow,
   onOpenSettings,
@@ -398,14 +400,12 @@ export function TopBar({
           </Tooltip>
 
           <div className="min-w-0 flex-1">
-            <WorkspaceSwitcher
-              variant="topbar"
+            <WorkspaceBreadcrumb
+              workspace={workspaces.find((w) => w.id === activeWorkspaceId) ?? null}
+              sessionName={activeSessionName ?? null}
               workspaces={workspaces}
-              activeWorkspaceId={activeWorkspaceId}
-              onSelect={onSelectWorkspace}
-              onWorkspaceCreated={onWorkspaceCreated}
-              onWorkspaceRemoved={onWorkspaceRemoved}
-              workspaceUnreadMap={workspaceUnreadMap}
+              onSelectWorkspace={onSelectWorkspace}
+              onRenameSession={undefined}
             />
           </div>
         </div>

@@ -35,6 +35,7 @@ import {
 // SessionStatusIcons no longer used - icons come from dynamic sessionStatuses
 import { SourceAvatar } from "@/components/ui/source-avatar"
 import { TopBar } from "./TopBar"
+import { WorkspaceRail } from './WorkspaceRail'
 import { SquarePenRounded } from "../icons/SquarePenRounded"
 import { McpIcon } from "../icons/McpIcon"
 import { cn } from "@/lib/utils"
@@ -122,6 +123,7 @@ import { useAutomations } from "@/hooks/useAutomations"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { PanelHeader } from "./PanelHeader"
 import { SendToWorkspaceDialog } from "./SendToWorkspaceDialog"
+import { WorkspaceCreationScreen } from "@/components/workspace"
 import { EditPopover, getEditConfig, type EditContextKey } from "@/components/ui/EditPopover"
 import SettingsNavigator from "@/pages/settings/SettingsNavigator"
 import {
@@ -837,6 +839,18 @@ function AppShellContent({
     getAutomationHistory, handleReplayAutomation,
   } = useAutomations(activeWorkspaceId)
 
+  // Workspace rail: creation screen + context menu
+  const [showWorkspaceCreation, setShowWorkspaceCreation] = React.useState(false)
+
+  const handleWorkspaceRailContextMenu = React.useCallback(
+    (_workspaceId: string, e: React.MouseEvent) => {
+      e.preventDefault()
+      // v1: context menu is a follow-up task (rename / open folder / set icon / remove).
+      // The left-click-to-select behavior is the load-bearing feature for v1.
+    },
+    [],
+  )
+
   // Whether local MCP servers are enabled (affects stdio source status)
   const [localMcpEnabled, setLocalMcpEnabled] = React.useState(true)
 
@@ -1318,6 +1332,11 @@ function AppShellContent({
   const activeSessionMetas = useMemo(() => {
     return workspaceSessionMetas.filter(s => !s.isArchived)
   }, [workspaceSessionMetas])
+
+  const activeSessionName = React.useMemo(() => {
+    const s = activeSessionMetas.find((x) => x.id === effectiveSessionId)
+    return s ? getSessionTitle(s) : null
+  }, [activeSessionMetas, effectiveSessionId])
 
   const refreshWorkspaceUnreadMap = useCallback(async () => {
     try {
@@ -2170,6 +2189,16 @@ function AppShellContent({
 
   return (
     <AppShellProvider value={appShellContextValue}>
+      <div className="flex h-full w-full">
+        <WorkspaceRail
+          workspaces={workspaces}
+          activeWorkspaceId={activeWorkspaceId}
+          workspaceUnreadMap={workspaceUnreadMap}
+          onSelect={(id) => { void onSelectWorkspace(id) }}
+          onCreate={() => setShowWorkspaceCreation(true)}
+          onContextMenu={(id, e) => handleWorkspaceRailContextMenu(id, e)}
+        />
+        <div className="flex flex-col flex-1 min-w-0">
         {/* === TOP BAR === */}
         <TopBar
           workspaces={workspaces}
@@ -2179,6 +2208,7 @@ function AppShellContent({
           onWorkspaceCreated={() => onRefreshWorkspaces?.()}
           onWorkspaceRemoved={() => onRefreshWorkspaces?.()}
           activeSessionId={effectiveSessionId}
+          activeSessionName={activeSessionName}
           onNewChat={() => handleNewChat()}
           onNewWindow={() => window.electronAPI.menuNewWindow()}
           onOpenSettings={onOpenSettings}
@@ -3517,6 +3547,19 @@ function AppShellContent({
         onTransferComplete={handleTransferComplete}
       />
 
+      {showWorkspaceCreation && (
+        <WorkspaceCreationScreen
+          onClose={() => setShowWorkspaceCreation(false)}
+          onWorkspaceCreated={(ws) => {
+            setShowWorkspaceCreation(false)
+            onRefreshWorkspaces?.()
+            void onSelectWorkspace(ws.id)
+          }}
+        />
+      )}
+
+        </div>{/* end flex-col flex-1 min-w-0 */}
+      </div>{/* end flex h-full w-full */}
     </AppShellProvider>
   )
 }
