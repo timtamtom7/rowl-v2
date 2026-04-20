@@ -91,6 +91,13 @@ interface SessionListProps {
   hasPendingPrompt?: (sessionId: string) => boolean
   /** DOM-verified match info for the active session (from ChatDisplay) */
   activeChatMatchInfo?: { sessionId: string | null; count: number; isHighlighting?: boolean }
+  /**
+   * Optional external ref for the scroll viewport. When supplied, the parent
+   * owns the ref and can run effects against it (e.g., scroll-anchor
+   * capture/restore). When omitted, SessionList manages its own ref
+   * internally — preserving the historical single-mount behaviour.
+   */
+  viewportRef?: React.RefObject<HTMLDivElement | null>
 }
 
 // Re-export SessionStatusId for use by parent components
@@ -141,6 +148,7 @@ export function SessionList({
   onNavigateToSession,
   hasPendingPrompt,
   activeChatMatchInfo,
+  viewportRef: externalViewportRef,
 }: SessionListProps) {
   const { t, i18n } = useTranslation()
   const setSendToWorkspace = useSetAtom(sendToWorkspaceAtom)
@@ -229,7 +237,11 @@ export function SessionList({
   }, [])
 
   // --- Data pipeline (search, filtering, pagination, grouping) ---
-  const scrollViewportRef = useRef<HTMLDivElement>(null)
+  // If the parent supplies an external ref (e.g. AllSessionsView for the
+  // scroll-anchor preservation across panel↔dropdown toggle), use it;
+  // otherwise fall back to a locally-owned ref as before.
+  const localViewportRef = useRef<HTMLDivElement>(null)
+  const scrollViewportRef = externalViewportRef ?? localViewportRef
 
   const {
     isSearchMode,
