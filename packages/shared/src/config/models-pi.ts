@@ -133,6 +133,7 @@ export function getAllPiModels(): ModelDefinition[] {
 const PI_PROVIDER_DISPLAY: Partial<Record<KnownProvider, { label: string; placeholder: string }>> = {
   'anthropic':              { label: 'Anthropic',          placeholder: 'sk-ant-...' },
   'google':                 { label: 'Google AI Studio',   placeholder: 'AIza...' },
+  'google-gemini-cli':      { label: 'Google Gemini CLI',   placeholder: 'OAuth flow' },
   'openai':                 { label: 'OpenAI',             placeholder: 'sk-...' },
   'openrouter':             { label: 'OpenRouter',         placeholder: 'sk-or-...' },
   'groq':                   { label: 'Groq',               placeholder: 'gsk_...' },
@@ -155,7 +156,6 @@ const PI_EXCLUDED_PROVIDERS: Set<string> = new Set([
   'github-copilot',
   'openai-codex',
   'google-vertex',
-  'google-gemini-cli',
   'google-antigravity',
 ]);
 

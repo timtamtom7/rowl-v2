@@ -17,6 +17,7 @@ import { CLIENT_OPEN_EXTERNAL } from '@craft-agent/server-core/transport'
 
 // Local OAuth state
 let copilotOAuthAbort: AbortController | null = null
+let geminiCliOAuthAbort: AbortController | null = null
 
 export const HANDLED_CHANNELS = [
   RPC_CHANNELS.llmConnections.LIST,
@@ -38,6 +39,10 @@ export const HANDLED_CHANNELS = [
   RPC_CHANNELS.copilot.CANCEL_OAUTH,
   RPC_CHANNELS.copilot.GET_AUTH_STATUS,
   RPC_CHANNELS.copilot.LOGOUT,
+  RPC_CHANNELS.googleGeminiCli.START_OAUTH,
+  RPC_CHANNELS.googleGeminiCli.CANCEL_OAUTH,
+  RPC_CHANNELS.googleGeminiCli.GET_AUTH_STATUS,
+  RPC_CHANNELS.googleGeminiCli.LOGOUT,
   RPC_CHANNELS.settings.SETUP_LLM_CONNECTION,
   RPC_CHANNELS.settings.TEST_LLM_CONNECTION_SETUP,
   RPC_CHANNELS.pi.GET_API_KEY_PROVIDERS,
@@ -828,6 +833,104 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       return { success: true }
     } catch (error) {
       deps.platform.logger?.error('Failed to clear Copilot credentials:', error)
+      return { success: false }
+    }
+  })
+
+  // ============================================================
+  // Google Gemini CLI OAuth
+  // ============================================================
+
+  // Start Google Gemini CLI OAuth flow
+  server.handle(RPC_CHANNELS.googleGeminiCli.START_OAUTH, async (ctx, connectionSlug: string): Promise<{
+    success: boolean
+    error?: string
+  }> => {
+    try {
+      const { loginGeminiCli } = await import('@mariozechner/pi-ai/oauth')
+      const credentialManager = getCredentialManager()
+
+      // Cancel any previous in-flight flow
+      geminiCliOAuthAbort?.abort()
+      geminiCliOAuthAbort = new AbortController()
+
+      deps.platform.logger?.info(`Starting Google Gemini CLI OAuth flow for connection: ${connectionSlug}`)
+
+      // Use Pi SDK's loginGeminiCli — handles OAuth callback
+      const credentials = await loginGeminiCli({
+        url,
+        instructions,
+      } => {
+        deps.platform.logger?.info(`[Google Gemini CLI OAuth] Opening auth URL`)
+        // Push device/code info to client if available
+        pushTyped(server, RPC_CHANNELS.googleGeminiCli.DEVICE_CODE, { to: 'client', clientId: ctx.clientId }, {
+          verificationUri: url,
+        })
+        // Open auth URL in browser
+        server.invokeClient(ctx.clientId, CLIENT_OPEN_EXTERNAL, url).catch(err => {
+          deps.platform.logger?.warn(`Failed to open browser for Google Gemini CLI OAuth: ${err}`)
+        })
+      }, (message) => {
+        deps.platform.logger?.info(`[Google Gemini CLI OAuth] ${message}`)
+      })
+
+      geminiCliOAuthAbort = null
+
+      // Store the OAuth credentials
+      await credentialManager.setLlmOAuth(connectionSlug, {
+        accessToken: credentials.access,
+        refreshToken: credentials.refresh,
+        expiresAt: credentials.expires,
+      })
+
+      deps.platform.logger?.info('Google Gemini CLI OAuth completed successfully')
+      return { success: true }
+    } catch (error) {
+      geminiCliOAuthAbort = null
+      deps.platform.logger?.error('Google Gemini CLI OAuth failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'OAuth authentication failed',
+      }
+    }
+  })
+
+  // Cancel ongoing Google Gemini CLI OAuth flow
+  server.handle(RPC_CHANNELS.googleGeminiCli.CANCEL_OAUTH, async (): Promise<{ success: boolean }> => {
+    if (geminiCliOAuthAbort) {
+      geminiCliOAuthAbort.abort()
+      geminiCliOAuthAbort = null
+      deps.platform.logger?.info('Google Gemini CLI OAuth cancelled')
+    }
+    return { success: true }
+  })
+
+  // Get Google Gemini CLI authentication status
+  server.handle(RPC_CHANNELS.googleGeminiCli.GET_AUTH_STATUS, async (_ctx, connectionSlug: string): Promise<{
+    authenticated: boolean
+  }> => {
+    try {
+      const credentialManager = getCredentialManager()
+      const creds = await credentialManager.getLlmOAuth(connectionSlug)
+
+      return {
+        authenticated: !!creds?.accessToken,
+      }
+    } catch (error) {
+      deps.platform.logger?.error('Failed to get Google Gemini CLI auth status:', error)
+      return { authenticated: false }
+    }
+  })
+
+  // Logout from Google Gemini CLI (clear stored tokens)
+  server.handle(RPC_CHANNELS.googleGeminiCli.LOGOUT, async (_ctx, connectionSlug: string): Promise<{ success: boolean }> => {
+    try {
+      const credentialManager = getCredentialManager()
+      await credentialManager.deleteLlmCredentials(connectionSlug)
+      deps.platform.logger?.info('Google Gemini CLI credentials cleared')
+      return { success: true }
+    } catch (error) {
+      deps.platform.logger?.error('Failed to clear Google Gemini CLI credentials:', error)
       return { success: false }
     }
   })

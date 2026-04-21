@@ -96,6 +96,7 @@ export const BASE_SLUG_FOR_METHOD: Record<ApiSetupMethod, string> = {
   claude_oauth: 'claude-max',
   pi_chatgpt_oauth: 'chatgpt-plus',
   pi_copilot_oauth: 'github-copilot',
+  pi_google_gemini_cli_oauth: 'google-gemini-cli',
   pi_api_key: 'pi-api-key',
 }
 
@@ -170,6 +171,7 @@ export function apiSetupMethodToConnectionSetup(
       }
     case 'pi_chatgpt_oauth':
     case 'pi_copilot_oauth':
+    case 'pi_google_gemini_cli_oauth':
       return {
         slug,
         credential: options.credential,
@@ -602,6 +604,33 @@ export function useOnboarding({
         return
       }
 
+      // Google Gemini CLI OAuth (uses standard OAuth callback flow)
+      if (effectiveMethod === 'pi_google_gemini_cli_oauth') {
+        const effectiveEditingSlug = connectionSlugOverride ?? editingSlug
+        const isReauth = !!effectiveEditingSlug
+        const connectionSlug = apiSetupMethodToConnectionSetup(effectiveMethod, {}, effectiveEditingSlug, existingSlugs).slug
+
+        try {
+          const result = await window.electronAPI.startGoogleGeminiCliOAuth(connectionSlug)
+          if (result.success) {
+            await saveAndValidateConnection(connectionSlug, effectiveMethod, undefined, isReauth)
+          } else {
+            setState(s => ({
+              ...s,
+              credentialStatus: 'error',
+              errorMessage: result.error || 'Google Gemini CLI authentication failed',
+            }))
+          }
+        } catch (error) {
+          setState(s => ({
+            ...s,
+            credentialStatus: 'error',
+            errorMessage: error instanceof Error ? error.message : 'Google Gemini CLI authentication failed',
+          }))
+        }
+        return
+      }
+
       // Claude OAuth (two-step flow - opens browser, user copies code)
       // Remaining method must be claude_oauth
       if (effectiveMethod !== 'claude_oauth') {
@@ -641,6 +670,7 @@ export function useOnboarding({
       claude: 'claude_oauth',
       chatgpt: 'pi_chatgpt_oauth',
       copilot: 'pi_copilot_oauth',
+      google_gemini_cli: 'pi_google_gemini_cli_oauth',
       api_key: 'pi_api_key',
     }
 
@@ -660,7 +690,7 @@ export function useOnboarding({
     }))
 
     // OAuth methods start immediately
-    if (choice === 'claude' || choice === 'chatgpt' || choice === 'copilot') {
+    if (choice === 'claude' || choice === 'chatgpt' || choice === 'copilot' || choice === 'google_gemini_cli') {
       // Defer to next tick so state is updated before handleStartOAuth reads it
       setTimeout(() => handleStartOAuth(method), 0)
     }

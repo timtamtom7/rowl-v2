@@ -127,6 +127,12 @@ export const BUILT_IN_CONNECTION_TEMPLATES: Record<string, {
     authType: 'oauth',
     piAuthProvider: 'github-copilot',
   },
+  'google-gemini-cli': {
+    name: 'Google Gemini CLI',
+    providerType: 'pi',
+    authType: 'oauth',
+    piAuthProvider: 'google-gemini-cli',
+  },
   'pi-api-key': {
     name: 'Craft Agents Backend (API Key)',
     providerType: 'pi',
@@ -144,6 +150,7 @@ const PI_AUTH_PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   openai: 'OpenAI',
   'openai-codex': 'OpenAI',
   google: 'Google AI Studio',
+  'google-gemini-cli': 'Google Gemini CLI',
   openrouter: 'OpenRouter',
   'azure-openai-responses': 'Azure OpenAI',
   'amazon-bedrock': 'Amazon Bedrock',

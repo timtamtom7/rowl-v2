@@ -405,6 +405,13 @@ export interface ElectronAPI {
   copilotLogout(connectionSlug: string): Promise<{ success: boolean }>
   onCopilotDeviceCode(callback: (data: { userCode: string; verificationUri: string }) => void): () => void
 
+  // Google Gemini CLI OAuth
+  startGoogleGeminiCliOAuth(connectionSlug: string): Promise<{ success: boolean; error?: string }>
+  cancelGoogleGeminiCliOAuth(): Promise<{ success: boolean }>
+  getGoogleGeminiCliAuthStatus(connectionSlug: string): Promise<{ authenticated: boolean }>
+  googleGeminiCliLogout(connectionSlug: string): Promise<{ success: boolean }>
+  onGoogleGeminiCliDeviceCode(callback: (data: { verificationUri: string }) => void): () => void
+
   /** Unified LLM connection setup */
   setupLlmConnection(setup: LlmConnectionSetup): Promise<{ success: boolean; error?: string }>
   /** Unified connection test — spawns a lightweight agent subprocess to validate credentials */

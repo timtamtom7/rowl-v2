@@ -29,6 +29,7 @@ export type ApiSetupMethod =
   | 'claude_oauth'
   | 'pi_chatgpt_oauth'
   | 'pi_copilot_oauth'
+  | 'pi_google_gemini_cli_oauth'
   | 'pi_api_key'
 
 /**
@@ -46,6 +47,8 @@ export function apiSetupMethodToConnectionTypes(method: ApiSetupMethod): {
     case 'pi_chatgpt_oauth':
       return { providerType: 'pi', authType: 'oauth' };
     case 'pi_copilot_oauth':
+      return { providerType: 'pi', authType: 'oauth' };
+    case 'pi_google_gemini_cli_oauth':
       return { providerType: 'pi', authType: 'oauth' };
     case 'pi_api_key':
       return { providerType: 'pi', authType: 'api_key' };
@@ -65,6 +68,7 @@ const API_SETUP_ICONS: Record<ApiSetupMethod, React.ReactNode> = {
   anthropic_api_key: <Key className="size-4" />,
   pi_chatgpt_oauth: <Cpu className="size-4" />,
   pi_copilot_oauth: <Cpu className="size-4" />,
+  pi_google_gemini_cli_oauth: <Cpu className="size-4" />,
   pi_api_key: <Key className="size-4" />,
 }
 
@@ -225,6 +229,13 @@ export function APISetupStep({
       name: 'GitHub Copilot',
       description: t("onboarding.apiSetup.githubCopilotDesc"),
       icon: API_SETUP_ICONS.pi_copilot_oauth,
+      providerType: 'pi',
+    },
+    {
+      id: 'pi_google_gemini_cli_oauth',
+      name: 'Google Gemini CLI',
+      description: 'Use Google Gemini via Cloud Code Assist API.',
+      icon: API_SETUP_ICONS.pi_google_gemini_cli_oauth,
       providerType: 'pi',
     },
     {

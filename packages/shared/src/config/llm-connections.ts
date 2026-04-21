@@ -458,6 +458,8 @@ export const PI_PREFERRED_DEFAULTS: Record<string, string[]> = {
   // is fast, stable, and widely quota-available — safe default for the probe.
   // Users still see the full list and can pick any model from Settings.
   google: ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite-preview', 'gemini-2.5-pro', 'gemini-3-pro-preview'],
+  // google-gemini-cli uses Cloud Code Assist API - same model set as google provider
+  'google-gemini-cli': ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite-preview', 'gemini-2.5-pro', 'gemini-3-pro-preview'],
   'github-copilot': ['claude-sonnet-4-6', 'gpt-5', 'o4-mini', 'claude-haiku-4-5'],
   'amazon-bedrock': ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
 };
