@@ -144,6 +144,13 @@ export const CHANNEL_MAP = {
   copilotLogout: invoke(RPC_CHANNELS.copilot.LOGOUT),
   onCopilotDeviceCode: listener(RPC_CHANNELS.copilot.DEVICE_CODE),
 
+  // Google Gemini CLI OAuth
+  startGoogleGeminiCliOAuth: invoke(RPC_CHANNELS.googleGeminiCli.START_OAUTH),
+  cancelGoogleGeminiCliOAuth: invoke(RPC_CHANNELS.googleGeminiCli.CANCEL_OAUTH),
+  getGoogleGeminiCliAuthStatus: invoke(RPC_CHANNELS.googleGeminiCli.GET_AUTH_STATUS),
+  googleGeminiCliLogout: invoke(RPC_CHANNELS.googleGeminiCli.LOGOUT),
+  onGoogleGeminiCliDeviceCode: listener(RPC_CHANNELS.googleGeminiCli.DEVICE_CODE),
+
   // Server info (REMOTE_ELIGIBLE)
   getServerHomeDir: invoke(RPC_CHANNELS.server.HOME_DIR),
 
@@ -214,6 +221,7 @@ export const CHANNEL_MAP = {
   getDefaultPermissionsConfig: invoke(RPC_CHANNELS.permissions.GET_DEFAULTS),
   onDefaultPermissionsChanged: listener(RPC_CHANNELS.permissions.DEFAULTS_CHANGED),
   getMcpTools: invoke(RPC_CHANNELS.sources.GET_MCP_TOOLS),
+  setSourceIcon: invoke(RPC_CHANNELS.sources.SET_ICON),
 
   // Session content search
   searchSessionContent: invoke(RPC_CHANNELS.sessions.SEARCH_CONTENT),
@@ -230,6 +238,7 @@ export const CHANNEL_MAP = {
   deleteSkill: invoke(RPC_CHANNELS.skills.DELETE),
   openSkillInEditor: invoke(RPC_CHANNELS.skills.OPEN_EDITOR),
   openSkillInFinder: invoke(RPC_CHANNELS.skills.OPEN_FINDER),
+  setSkillIcon: invoke(RPC_CHANNELS.skills.SET_ICON),
   onSkillsChanged: listener(RPC_CHANNELS.skills.CHANGED),
 
   // Statuses

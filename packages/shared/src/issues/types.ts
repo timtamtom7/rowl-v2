@@ -65,7 +65,7 @@ export function getNextStatus(current: IssueStatus): IssueStatus {
   const order: IssueStatus[] = ['backlog', 'todo', 'in_progress', 'done'];
   const idx = order.indexOf(current);
   if (idx === -1 || idx === order.length - 1) return current;
-  return order[idx + 1];
+  return order[idx + 1] ?? current;
 }
 
 /**
@@ -75,5 +75,5 @@ export function getPreviousStatus(current: IssueStatus): IssueStatus {
   const order: IssueStatus[] = ['backlog', 'todo', 'in_progress', 'done'];
   const idx = order.indexOf(current);
   if (idx <= 0) return current;
-  return order[idx - 1];
+  return order[idx - 1] ?? current;
 }

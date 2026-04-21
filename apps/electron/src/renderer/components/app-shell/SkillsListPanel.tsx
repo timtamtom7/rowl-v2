@@ -8,6 +8,7 @@ import { skillSelection } from '@/hooks/useEntitySelection'
 import { SkillMenu } from './SkillMenu'
 import { SendResourceToWorkspaceDialog } from './SendResourceToWorkspaceDialog'
 import { EditPopover, getEditConfig } from '@/components/ui/EditPopover'
+import { IconPicker } from '@/components/ui/IconPicker'
 import { useActiveWorkspace, useAppShellContext } from '@/context/AppShellContext'
 import type { LoadedSkill } from '../../../shared/types'
 
@@ -71,9 +72,10 @@ export function SkillsListPanel({
         </EntityListEmptyScreen>
       }
       mapItem={(skill) => ({
-        icon: skill.path ? (
-          <EditPopover
-            align="start"
+        icon: (
+          <IconPicker
+            kind="skill"
+            slug={skill.slug}
             trigger={
               <button
                 type="button"
@@ -84,10 +86,7 @@ export function SkillsListPanel({
                 <SkillAvatar skill={skill} size="sm" workspaceId={workspaceId} />
               </button>
             }
-            {...getEditConfig('skill-icon', skill.path)}
           />
-        ) : (
-          <SkillAvatar skill={skill} size="sm" workspaceId={workspaceId} />
         ),
         title: skill.metadata.name,
         badges: (

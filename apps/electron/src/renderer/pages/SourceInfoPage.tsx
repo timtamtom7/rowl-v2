@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { EditPopover, EditButton, getEditConfig } from '@/components/ui/EditPopover'
+import { IconPicker } from '@/components/ui/IconPicker'
 import { SourceAvatar } from '@/components/ui/source-avatar'
 import { SourceMenu } from '@/components/app-shell/SourceMenu'
 import { cn } from '@/lib/utils'
@@ -381,14 +382,14 @@ export default function SourceInfoPage({ sourceSlug, workspaceId, onDelete }: So
           {/* Hero: Avatar, title, and tagline */}
           <Info_Page.Hero
             avatar={
-              <EditPopover
+              <IconPicker
+                kind="source"
+                slug={source.config.slug}
                 trigger={
                   <button className="cursor-pointer rounded p-0.5 -m-0.5 hover:bg-foreground/5 transition-colors">
                     <SourceAvatar source={source} fluid />
                   </button>
                 }
-                {...getEditConfig('source-icon', source.folderPath)}
-                inlineExecution={true}
               />
             }
             title={source.config.name}

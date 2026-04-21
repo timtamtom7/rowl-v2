@@ -11,6 +11,7 @@ import { SourceMenu } from './SourceMenu'
 import { SendResourceToWorkspaceDialog } from './SendResourceToWorkspaceDialog'
 import { useAppShellContext } from '@/context/AppShellContext'
 import { EditPopover, getEditConfig, type EditContextKey } from '@/components/ui/EditPopover'
+import { IconPicker } from '@/components/ui/IconPicker'
 import type { LoadedSource, SourceConnectionStatus, SourceFilter } from '../../../shared/types'
 
 const SOURCE_TYPE_CONFIG: Record<string, { labelKey: string; colorClass: string }> = {
@@ -116,9 +117,10 @@ export function SourcesListPanel({
         const subtitle = source.config.tagline || source.config.provider || ''
         const avatar = <SourceAvatar source={source} size="sm" />
         return {
-          icon: source.folderPath ? (
-            <EditPopover
-              align="start"
+          icon: (
+            <IconPicker
+              kind="source"
+              slug={source.config.slug}
               trigger={
                 <button
                   type="button"
@@ -129,9 +131,8 @@ export function SourcesListPanel({
                   {avatar}
                 </button>
               }
-              {...getEditConfig('source-icon', source.folderPath)}
             />
-          ) : avatar,
+          ),
           title: source.config.name,
           badges: (
             <>

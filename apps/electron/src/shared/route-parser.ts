@@ -296,6 +296,11 @@ export function buildCompoundRoute(parsed: ParsedCompoundRoute): string {
     return 'overview'
   }
 
+  if (parsed.navigator === 'issues') {
+    if (!parsed.details) return 'issues'
+    return `issues/issue/${parsed.details.id}`
+  }
+
   if (parsed.navigator === 'automations') {
     // Build base from filter (automations, automations/scheduled, automations/event, automations/agentic)
     let base = 'automations'

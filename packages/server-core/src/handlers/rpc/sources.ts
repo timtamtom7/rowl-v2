@@ -16,6 +16,7 @@ export const HANDLED_CHANNELS = [
   RPC_CHANNELS.workspace.GET_PERMISSIONS,
   RPC_CHANNELS.permissions.GET_DEFAULTS,
   RPC_CHANNELS.sources.GET_MCP_TOOLS,
+  RPC_CHANNELS.sources.SET_ICON,
 ] as const
 
 export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): void {
@@ -240,4 +241,66 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
       return { success: false, error: errorMessage }
     }
   })
+
+  // Set the icon for a source. The icon may be:
+  //   - { type: 'emoji', value: '🦝' }                — store the emoji directly in config.json
+  //   - { type: 'url',   value: 'https://...' }       — store a remote URL in config.json
+  //   - { type: 'file',  fileBase64, fileExt: '.png' }— write the binary into the source folder
+  //                                                     as `icon.{ext}` and reference the local
+  //                                                     filename in config.json
+  server.handle(
+    RPC_CHANNELS.sources.SET_ICON,
+    async (
+      _ctx,
+      workspaceId: string,
+      sourceSlug: string,
+      icon: { type: 'emoji' | 'url' | 'file'; value?: string; fileBase64?: string; fileExt?: string }
+    ) => {
+      const workspace = getWorkspaceByNameOrId(workspaceId)
+      if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
+
+      const { join, normalize } = await import('path')
+      const { writeFileSync, readFileSync, existsSync, readdirSync, unlinkSync } = await import('fs')
+
+      const sourceFolder = normalize(join(workspace.rootPath, 'sources', sourceSlug))
+      if (!sourceFolder.startsWith(normalize(workspace.rootPath))) {
+        throw new Error('Invalid source path')
+      }
+      const configPath = join(sourceFolder, 'config.json')
+      if (!existsSync(configPath)) throw new Error(`Source config not found: ${sourceSlug}`)
+
+      let iconValue: string
+      if (icon.type === 'file') {
+        const ALLOWED = new Set(['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'])
+        const ext = (icon.fileExt || '').toLowerCase()
+        if (!ALLOWED.has(ext)) throw new Error(`Unsupported icon extension: ${ext}`)
+        if (!icon.fileBase64) throw new Error('Missing fileBase64')
+
+        // Remove any existing icon.* files in the source folder
+        for (const file of readdirSync(sourceFolder)) {
+          if (file.startsWith('icon.')) {
+            try { unlinkSync(join(sourceFolder, file)) } catch { /* ignore */ }
+          }
+        }
+
+        const fileName = `icon${ext}`
+        const buffer = Buffer.from(icon.fileBase64, 'base64')
+        writeFileSync(join(sourceFolder, fileName), buffer)
+        iconValue = fileName
+      } else {
+        if (!icon.value) throw new Error('Missing icon value')
+        iconValue = icon.value
+      }
+
+      // Read current config.json, update only the icon field, preserve everything else
+      const raw = readFileSync(configPath, 'utf-8')
+      const config = safeJsonParse(raw) as Record<string, unknown> | null
+      if (!config) throw new Error(`Could not parse config.json for ${sourceSlug}`)
+      config.icon = iconValue
+      writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8')
+
+      log.info(`Set icon for source ${sourceSlug}: ${iconValue}`)
+      return { success: true, icon: iconValue }
+    }
+  )
 }

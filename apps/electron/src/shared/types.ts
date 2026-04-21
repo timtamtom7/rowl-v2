@@ -460,6 +460,11 @@ export interface ElectronAPI {
   getWorkspacePermissionsConfig(workspaceId: string): Promise<import('@craft-agent/shared/agent').PermissionsConfigFile | null>
   getDefaultPermissionsConfig(): Promise<{ config: import('@craft-agent/shared/agent').PermissionsConfigFile | null; path: string }>
   getMcpTools(workspaceId: string, sourceSlug: string): Promise<McpToolsResult>
+  setSourceIcon(
+    workspaceId: string,
+    sourceSlug: string,
+    icon: { type: 'emoji' | 'url' | 'file'; value?: string; fileBase64?: string; fileExt?: string }
+  ): Promise<{ success: boolean; icon: string }>
 
   // OAuth (server-owned credentials, client-orchestrated flow)
   performOAuth(args: { sourceSlug: string; sessionId?: string; authRequestId?: string }): Promise<{ success: boolean; error?: string; email?: string }>
@@ -480,6 +485,11 @@ export interface ElectronAPI {
   deleteSkill(workspaceId: string, skillSlug: string): Promise<void>
   openSkillInEditor(workspaceId: string, skillSlug: string): Promise<void>
   openSkillInFinder(workspaceId: string, skillSlug: string): Promise<void>
+  setSkillIcon(
+    workspaceId: string,
+    skillSlug: string,
+    icon: { type: 'emoji' | 'url' | 'file'; value?: string; fileBase64?: string; fileExt?: string }
+  ): Promise<{ success: boolean; icon: string }>
 
   // Skills change listener (live updates when skills are added/removed/modified)
   onSkillsChanged(callback: (workspaceId: string, skills: LoadedSkill[]) => void): () => void

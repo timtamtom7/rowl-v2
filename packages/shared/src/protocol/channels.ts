@@ -199,6 +199,13 @@ export const RPC_CHANNELS = {
     LOGOUT: 'copilot:logout',
     DEVICE_CODE: 'copilot:deviceCode',
   },
+  googleGeminiCli: {
+    START_OAUTH: 'googleGeminiCli:startOAuth',
+    CANCEL_OAUTH: 'googleGeminiCli:cancelOAuth',
+    GET_AUTH_STATUS: 'googleGeminiCli:getAuthStatus',
+    LOGOUT: 'googleGeminiCli:logout',
+    DEVICE_CODE: 'googleGeminiCli:deviceCode',
+  },
   settings: {
     SETUP_LLM_CONNECTION: 'settings:setupLlmConnection',
     TEST_LLM_CONNECTION_SETUP: 'settings:testLlmConnectionSetup',
@@ -237,6 +244,7 @@ export const RPC_CHANNELS = {
     CHANGED: 'sources:changed',
     GET_PERMISSIONS: 'sources:getPermissions',
     GET_MCP_TOOLS: 'sources:getMcpTools',
+    SET_ICON: 'sources:setIcon',
   },
   oauth: {
     START: 'oauth:start',
@@ -262,6 +270,7 @@ export const RPC_CHANNELS = {
     OPEN_EDITOR: 'skills:openEditor',
     OPEN_FINDER: 'skills:openFinder',
     CHANGED: 'skills:changed',
+    SET_ICON: 'skills:setIcon',
   },
   statuses: {
     LIST: 'statuses:list',

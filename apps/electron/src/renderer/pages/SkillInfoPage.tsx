@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { useEffect, useState, useCallback } from 'react'
 import { Check, X, Minus } from 'lucide-react'
 import { EditPopover, EditButton, getEditConfig } from '@/components/ui/EditPopover'
+import { IconPicker } from '@/components/ui/IconPicker'
 import { toast } from 'sonner'
 import { SkillMenu } from '@/components/app-shell/SkillMenu'
 import { SkillAvatar } from '@/components/ui/skill-avatar'
@@ -163,14 +164,14 @@ export default function SkillInfoPage({ skillSlug, workspaceId, workingDirectory
           {/* Hero: Avatar, title, and description */}
           <Info_Page.Hero
             avatar={
-              <EditPopover
+              <IconPicker
+                kind="skill"
+                slug={skill.slug}
                 trigger={
                   <button className="cursor-pointer rounded p-0.5 -m-0.5 hover:bg-foreground/5 transition-colors">
                     <SkillAvatar skill={skill} fluid workspaceId={workspaceId} />
                   </button>
                 }
-                {...getEditConfig('skill-icon', skill.path)}
-                inlineExecution={true}
               />
             }
             title={skill.metadata.name}

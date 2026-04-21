@@ -11,6 +11,7 @@ export const HANDLED_CHANNELS = [
   RPC_CHANNELS.skills.DELETE,
   RPC_CHANNELS.skills.OPEN_EDITOR,
   RPC_CHANNELS.skills.OPEN_FINDER,
+  RPC_CHANNELS.skills.SET_ICON,
 ] as const
 
 export function registerSkillsHandlers(server: RpcServer, deps: HandlerDeps): void {
@@ -117,4 +118,70 @@ export function registerSkillsHandlers(server: RpcServer, deps: HandlerDeps): vo
     const skillDir = join(skillsDir, skillSlug)
     await deps.platform.showItemInFolder?.(skillDir)
   })
+
+  // Set the icon for a skill. Updates the `icon:` field in the SKILL.md
+  // YAML frontmatter and (for file uploads) writes the binary into the skill
+  // folder as `icon.{ext}`.
+  server.handle(
+    RPC_CHANNELS.skills.SET_ICON,
+    async (
+      _ctx,
+      workspaceId: string,
+      skillSlug: string,
+      icon: { type: 'emoji' | 'url' | 'file'; value?: string; fileBase64?: string; fileExt?: string }
+    ) => {
+      const workspace = getWorkspaceByNameOrId(workspaceId)
+      if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
+
+      const { writeFileSync, readFileSync, existsSync, readdirSync, unlinkSync } = await import('fs')
+      const { getWorkspaceSkillsPath } = await import('@craft-agent/shared/workspaces')
+      const { normalize } = await import('path')
+
+      const skillsDir = getWorkspaceSkillsPath(workspace.rootPath)
+      const skillDir = normalize(join(skillsDir, skillSlug))
+      if (!skillDir.startsWith(normalize(workspace.rootPath))) {
+        throw new Error('Invalid skill path')
+      }
+      const skillFile = join(skillDir, 'SKILL.md')
+      if (!existsSync(skillFile)) throw new Error(`SKILL.md not found: ${skillSlug}`)
+
+      let iconValue: string
+      if (icon.type === 'file') {
+        const ALLOWED = new Set(['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'])
+        const ext = (icon.fileExt || '').toLowerCase()
+        if (!ALLOWED.has(ext)) throw new Error(`Unsupported icon extension: ${ext}`)
+        if (!icon.fileBase64) throw new Error('Missing fileBase64')
+
+        for (const file of readdirSync(skillDir)) {
+          if (file.startsWith('icon.')) {
+            try { unlinkSync(join(skillDir, file)) } catch { /* ignore */ }
+          }
+        }
+
+        const fileName = `icon${ext}`
+        writeFileSync(join(skillDir, fileName), Buffer.from(icon.fileBase64, 'base64'))
+        iconValue = fileName
+      } else {
+        if (!icon.value) throw new Error('Missing icon value')
+        iconValue = icon.value
+      }
+
+      // Update icon in YAML frontmatter without disturbing other fields/content.
+      const text = readFileSync(skillFile, 'utf-8')
+      const fmMatch = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
+      if (!fmMatch) throw new Error(`SKILL.md is missing YAML frontmatter: ${skillSlug}`)
+      const [, fmRaw, body] = fmMatch
+      const lines = fmRaw.split('\n')
+      const iconLineIdx = lines.findIndex(l => /^icon\s*:/.test(l))
+      const escaped = iconValue.replace(/"/g, '\\"')
+      const newLine = `icon: "${escaped}"`
+      if (iconLineIdx >= 0) lines[iconLineIdx] = newLine
+      else lines.push(newLine)
+      const newContent = `---\n${lines.join('\n')}\n---\n${body}`
+      writeFileSync(skillFile, newContent, 'utf-8')
+
+      deps.platform.logger?.info(`Set icon for skill ${skillSlug}: ${iconValue}`)
+      return { success: true, icon: iconValue }
+    }
+  )
 }
