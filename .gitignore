@@ -58,6 +58,20 @@ pnpm-lock.yaml
 # Craft Agent local data (sessions, credentials, config)
 .craft-agent/
 
+# Rowl-as-workspace runtime state — generated when this repo is opened as a
+# workspace in Rowl itself (eat-your-own-dogfood). These MUST NOT be committed
+# because they contain real session transcripts, memory blocks, and event
+# audit logs (privacy-sensitive).
+/memory/
+/sessions/
+/labels/
+/statuses/
+/skills/
+/views.json
+/config.json
+/events.jsonl
+/.claude-plugin/
+
 # SSH keys and secrets
 *.pem
 *.key

@@ -33,7 +33,7 @@ Reference clones for each source live (read-only) at `/Users/mauriello/Dev/_refe
 Sub-project  Status
   #0  ████████████  shipped
   #1  ████████░░░░  Phase 1+2 shipped; Phase 3 (reminders) + Palace UI open
-  #2  ██░░░░░░░░░░  UI chrome in progress; data model not started
+  #2  ███░░░░░░░░░  feature #1 merged; #2 code complete (QA pending); data model not started
   #3  ░░░░░░░░░░░░  not started
   #4  ░░░░░░░░░░░░  not started
 ```
@@ -77,8 +77,8 @@ The UI-chrome polish branches (workspace rail, breadcrumbs) are prep work — th
 
 | # | Feature | Branch / Plan | Status |
 |---|---|---|---|
-| 1 | **Workspace rail** — 72px always-visible left rail (deterministic Bayer-matrix icon + 12-hue palette), drag-to-reorder, compact `Workspace › Session` breadcrumb replaces the old topbar workspace dropdown. | `workspace-rail` (shipped 2026-04-20, 13 commits, **not yet merged**) · `docs/plans/workspace-rail/` | ✅ SHIPPED, pending merge |
-| 2 | **Multi-panel breadcrumbs + All Sessions panel↔dropdown toggle** — `Workspace › [Sessions ▾] · [A] · [B] …` chip row with overflow menu, per-workspace mode preference, Cmd+Shift+T reopen-last-closed, scroll-anchor preservation across mode toggle. | `breadcrumbs-panel-dropdown-toggle` (23 commits) · `docs/plans/breadcrumbs-panel-dropdown-toggle/` | 🟡 code + tests done, manual QA pending |
+| 1 | **Workspace rail** — 72px always-visible left rail (deterministic Bayer-matrix icon + 12-hue palette), drag-to-reorder, compact `Workspace › Session` breadcrumb replaces the old topbar workspace dropdown. | merged to `main` at `992bee4` (2026-04-20) · `docs/plans/workspace-rail/` | ✅ SHIPPED + MERGED |
+| 2 | **Multi-panel breadcrumbs + All Sessions panel↔dropdown toggle** — `Workspace › [Sessions ▾] · [A] · [B] …` chip row with overflow menu, per-workspace mode preference, Cmd+Shift+T reopen-last-closed, scroll-anchor preservation across mode toggle. | `breadcrumbs-panel-dropdown-toggle` (22 commits ahead of `main`) · `docs/plans/breadcrumbs-panel-dropdown-toggle/` | 🟡 code + automated tests done, manual QA pending |
 | 3 | **Right sidebar redesign** — glass detached overlay, workspace settings UI, memory UI (surfaces #1's memory blocks in-app without Palace-level complexity). | 📋 brainstorm queue — not yet scoped | ⏸ |
 | 4 | **Paperclip data model** — the actual Goal → Issue → Document/Feedback/Approval entities. Sessions become children of Issues. | ⏸ not yet scoped | ⏸ |
 | 4a | Goal ancestry (parent/child goals, aggregate roll-up views). | part of #4 | ⏸ |
@@ -121,17 +121,15 @@ No features scoped — depends entirely on #2's data model landing first.
 ## Branch tree right now
 
 ```
-main ──────────────────────────────────── (last merge: memory-first Phase 2 @ 7660463)
+main ──────────────────────────────────── (last merges: workspace-rail @ 992bee4, memory-first Phase 2 @ 7660463)
    │
-   ├── workspace-rail ✅ shipped — 13 commits ahead, unmerged
-   │      │
-   │      └── breadcrumbs-panel-dropdown-toggle 🟡 — 23 commits ahead
-   │                - Tasks 1-16 done
-   │                - Deferred view wiring landed (264f5b9, a60c1dd)
-   │                - Only Task 17 (manual QA + polish/audit) left
+   └── breadcrumbs-panel-dropdown-toggle 🟡 — 22 commits ahead of main
+             - Tasks 1-16 done
+             - Deferred view wiring landed (264f5b9, a60c1dd)
+             - Only Task 17 (manual QA + polish/audit) left
 ```
 
-**Merge sequencing:** merge `workspace-rail` → `main` first (it's parent), then rebase or merge `breadcrumbs-panel-dropdown-toggle`.
+**Merge sequencing:** `workspace-rail` already merged (commit `992bee4`); branch deleted locally. `breadcrumbs-panel-dropdown-toggle` merges directly to `main` on QA pass.
 
 ---
 
