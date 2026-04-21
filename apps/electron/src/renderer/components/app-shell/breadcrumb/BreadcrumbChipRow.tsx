@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import * as ContextMenu from '@radix-ui/react-context-menu';
-import { MessageSquare, FileText, Settings as SettingsIcon, Sparkles, Layers, type LucideIcon } from 'lucide-react';
+import { MessageSquare, FileText, Settings as SettingsIcon, Sparkles, Layers, Lightbulb, Activity, type LucideIcon } from 'lucide-react';
 import {
   panelStackAtom,
   focusedPanelIdAtom,
@@ -22,6 +22,8 @@ const ICON_FOR_TYPE: Record<PanelType, LucideIcon> = {
   source: FileText,
   settings: SettingsIcon,
   skills: Sparkles,
+  issues: Lightbulb,
+  overview: Activity,
   other: Layers,
 };
 

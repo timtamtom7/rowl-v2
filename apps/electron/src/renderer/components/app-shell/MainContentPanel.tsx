@@ -31,7 +31,12 @@ import {
   isSettingsNavigation,
   isSkillsNavigation,
   isAutomationsNavigation,
+  isIssuesNavigation,
+  isOverviewNavigation,
 } from '@/contexts/NavigationContext'
+import { IssuesPanel } from './IssuesPanel'
+import { OverviewPanel } from '@/components/overview/OverviewPanel'
+import { navigate, routes } from '@/lib/navigate'
 import { useSessionSelection, useIsMultiSelectActive, useSelectedIds, useSelectionCount } from '@/hooks/useSession'
 import { sourceSelection, skillSelection, automationSelection } from '@/hooks/useEntitySelection'
 import { extractLabelId } from '@craft-agent/shared/labels'
@@ -236,6 +241,32 @@ export function MainContentPanel({
     return wrapWithStoplight(
       <Panel variant="grow" className={className}>
         <SettingsPageComponent />
+      </Panel>
+    )
+  }
+
+  // Overview navigator - workspace-rail home dashboard
+  if (isOverviewNavigation(navState)) {
+    return wrapWithStoplight(
+      <Panel variant="grow" className={className}>
+        <OverviewPanel />
+      </Panel>
+    )
+  }
+
+  // Issues navigator - localStorage-backed ideas tracker
+  if (isIssuesNavigation(navState)) {
+    return wrapWithStoplight(
+      <Panel variant="grow" className={className}>
+        <IssuesPanel
+          onBack={() => navigate(routes.view.allSessions())}
+          onCreateSession={(title) => {
+            navigate(routes.view.allSessions())
+            setTimeout(() => {
+              navigate(routes.action.newSession({ input: title, send: true }))
+            }, 100)
+          }}
+        />
       </Panel>
     )
   }

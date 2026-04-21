@@ -76,11 +76,9 @@ import { type ChatGroupingMode } from "./SessionList"
 import { AllSessionsView } from "./AllSessionsView"
 import { MainContentPanel } from "./MainContentPanel"
 import { PanelStackContainer } from "./PanelStackContainer"
-import { OverviewPanel } from "@/components/overview/OverviewPanel"
 import type { ChatDisplayHandle } from "./ChatDisplay"
 import { LeftSidebar } from "./LeftSidebar"
 import { useSession } from "@/hooks/useSession"
-import { IssuesPanel } from "./IssuesPanel"
 import {
   useAllSessionsDropdownModePersistence,
   useActiveWorkspaceAllSessionsMode,
@@ -2428,23 +2426,6 @@ function AppShellContent({
           clipPath: `inset(0 0 0 0 round ${RADIUS_EDGE}px 0 0 ${RADIUS_EDGE}px)`,
         }}
       >
-        {isOverviewActive ? (
-          <div className="flex-1 min-w-0 flex flex-col" style={{ height: '100%' }}>
-            <OverviewPanel />
-          </div>
-        ) : isIssuesActive ? (
-          <div className="flex-1 min-w-0 flex flex-col" style={{ height: '100%' }}>
-            <IssuesPanel
-              onBack={() => navigate(routes.view.allSessions())}
-              onCreateSession={(title) => {
-                navigate(routes.view.allSessions())
-                setTimeout(() => {
-                  navigate(routes.action.newSession({ input: title, send: true }))
-                }, 100)
-              }}
-            />
-          </div>
-        ) : (
         <PanelStackContainer
           sidebarSlot={
             <div
@@ -3435,13 +3416,12 @@ function AppShellContent({
             )}
             </div>
           }
-          navigatorWidth={isAutoCompact ? sessionListWidth : (effectiveSidebarAndNavigatorHidden ? 0 : sessionListWidth)}
+          navigatorWidth={isAutoCompact ? sessionListWidth : (effectiveSidebarAndNavigatorHidden || isFullScreenPanel ? 0 : sessionListWidth)}
           isSidebarAndNavigatorHidden={effectiveSidebarAndNavigatorHidden}
           isRightSidebarVisible={false}
           isCompact={isAutoCompact}
           isResizing={!!isResizing}
         />
-        )}
 
         {/* Sidebar Resize Handle (absolute, hidden in focused mode and full-screen panels) */}
         {!effectiveSidebarAndNavigatorHidden && !isFullScreenPanel && (

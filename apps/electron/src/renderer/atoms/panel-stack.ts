@@ -14,7 +14,7 @@ function generatePanelId(): string {
   return `panel-${++nextPanelId}-${Date.now()}`
 }
 
-export type PanelType = 'session' | 'source' | 'settings' | 'skills' | 'other'
+export type PanelType = 'session' | 'source' | 'settings' | 'skills' | 'issues' | 'overview' | 'other'
 export type PanelLaneId = 'main'
 export type OpenIntent = 'implicit' | 'explicit'
 
@@ -111,6 +111,10 @@ export function getPanelTypeFromRoute(route: ViewRoute): PanelType {
       return 'settings'
     case 'skills':
       return 'skills'
+    case 'issues':
+      return 'issues'
+    case 'overview':
+      return 'overview'
     default:
       return 'other'
   }
