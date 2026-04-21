@@ -35,7 +35,7 @@ export interface ParsedRoute {
 // Compound Route Types (new format)
 // =============================================================================
 
-export type NavigatorType = 'sessions' | 'sources' | 'skills' | 'automations' | 'settings'
+export type NavigatorType = 'sessions' | 'sources' | 'skills' | 'automations' | 'settings' | 'issues' | 'overview'
 
 export interface ParsedCompoundRoute {
   /** The navigator type */
@@ -61,7 +61,7 @@ export interface ParsedCompoundRoute {
  * Known prefixes that indicate a compound route
  */
 const COMPOUND_ROUTE_PREFIXES = [
-  'allSessions', 'flagged', 'archived', 'state', 'label', 'view', 'sources', 'skills', 'automations', 'settings'
+  'allSessions', 'flagged', 'archived', 'state', 'label', 'view', 'sources', 'skills', 'automations', 'settings', 'issues', 'overview'
 ]
 
 /**
@@ -102,6 +102,23 @@ export function parseCompoundRoute(route: string): ParsedCompoundRoute | null {
       navigator: 'settings',
       details: { type: subpage, id: subpage },
     }
+  }
+
+  // Issues navigator
+  if (first === 'issues') {
+    if (segments.length === 1) {
+      return { navigator: 'issues', details: null }
+    }
+    // Issue detail: issues/issue/{issueId}
+    if (segments[1] === 'issue' && segments[2]) {
+      return { navigator: 'issues', details: { type: 'issue', id: segments[2] } }
+    }
+    return null
+  }
+
+  // Overview navigator (no details)
+  if (first === 'overview') {
+    return { navigator: 'overview', details: null }
   }
 
   // Sources navigator - supports type filters (api, mcp, local)
@@ -275,6 +292,10 @@ export function buildCompoundRoute(parsed: ParsedCompoundRoute): string {
     return `skills/skill/${parsed.details.id}`
   }
 
+  if (parsed.navigator === 'overview') {
+    return 'overview'
+  }
+
   if (parsed.navigator === 'automations') {
     // Build base from filter (automations, automations/scheduled, automations/event, automations/agentic)
     let base = 'automations'
@@ -406,6 +427,19 @@ function convertCompoundToViewRoute(compound: ParsedCompoundRoute): ParsedRoute 
       return { type: 'view', name: 'automations', params: {} }
     }
     return { type: 'view', name: 'automation-info', id: compound.details.id, params: {} }
+  }
+
+  // Overview
+  if (compound.navigator === 'overview') {
+    return { type: 'view', name: 'overview', params: {} }
+  }
+
+  // Issues
+  if (compound.navigator === 'issues') {
+    if (!compound.details) {
+      return { type: 'view', name: 'issues', params: {} }
+    }
+    return { type: 'view', name: 'issue-detail', id: compound.details.id, params: {} }
   }
 
   // Sessions
@@ -541,6 +575,22 @@ function convertCompoundToNavigationState(compound: ParsedCompoundRoute): Naviga
     }
   }
 
+  // Issues
+  if (compound.navigator === 'issues') {
+    if (!compound.details) {
+      return { navigator: 'issues', details: null }
+    }
+    return {
+      navigator: 'issues',
+      details: { type: 'issue', issueId: compound.details.id },
+    }
+  }
+
+  // Overview
+  if (compound.navigator === 'overview') {
+    return { navigator: 'overview' }
+  }
+
   // Sessions
   const filter = compound.sessionFilter || { kind: 'allSessions' as const }
   if (compound.details) {
@@ -618,6 +668,15 @@ function convertParsedRouteToNavigationState(parsed: ParsedRoute): NavigationSta
         }
       }
       return { navigator: 'automations', details: null }
+    case 'overview':
+      return { navigator: 'overview' }
+    case 'issues':
+      return { navigator: 'issues', details: null }
+    case 'issue-detail':
+      if (parsed.id) {
+        return { navigator: 'issues', details: { type: 'issue', issueId: parsed.id } }
+      }
+      return { navigator: 'issues', details: null }
     case 'session':
       if (parsed.id) {
         // Reconstruct filter from params
@@ -720,6 +779,20 @@ function navigationStateToCompoundRoute(state: NavigationState): ParsedCompoundR
       navigator: 'automations',
       automationFilter: state.filter ?? undefined,
       details: state.details ? { type: 'automation', id: state.details.automationId } : null,
+    }
+  }
+
+  if (state.navigator === 'issues') {
+    return {
+      navigator: 'issues',
+      details: state.details ? { type: 'issue', id: state.details.issueId } : null,
+    }
+  }
+
+  if (state.navigator === 'overview') {
+    return {
+      navigator: 'overview',
+      details: null,
     }
   }
 

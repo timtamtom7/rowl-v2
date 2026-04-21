@@ -182,6 +182,13 @@ export const routes = {
       subpage
         ? `settings/${subpage}` as const
         : 'settings' as const,
+
+    /** Issues view (issues navigator) - pass issueId for detail view */
+    issues: (issueId?: string) =>
+      issueId ? `issues/issue/${issueId}` as const : 'issues' as const,
+
+    /** Overview view (workspace-rail home dashboard) */
+    overview: () => 'overview' as const,
   },
 } as const
 

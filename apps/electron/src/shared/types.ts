@@ -405,6 +405,13 @@ export interface ElectronAPI {
   copilotLogout(connectionSlug: string): Promise<{ success: boolean }>
   onCopilotDeviceCode(callback: (data: { userCode: string; verificationUri: string }) => void): () => void
 
+  // Google Gemini CLI OAuth
+  startGoogleGeminiCliOAuth(connectionSlug: string): Promise<{ success: boolean; error?: string }>
+  cancelGoogleGeminiCliOAuth(): Promise<{ success: boolean }>
+  getGoogleGeminiCliAuthStatus(connectionSlug: string): Promise<{ authenticated: boolean }>
+  googleGeminiCliLogout(connectionSlug: string): Promise<{ success: boolean }>
+  onGoogleGeminiCliDeviceCode(callback: (data: { verificationUri: string }) => void): () => void
+
   /** Unified LLM connection setup */
   setupLlmConnection(setup: LlmConnectionSetup): Promise<{ success: boolean; error?: string }>
   /** Unified connection test — spawns a lightweight agent subprocess to validate credentials */
@@ -742,6 +749,23 @@ export interface AutomationsNavigationState {
 }
 
 /**
+ * Issues navigation state
+ */
+export interface IssuesNavigationState {
+  navigator: 'issues'
+  details: { type: 'issue'; issueId: string } | null
+  rightSidebar?: RightSidebarPanel
+}
+
+/**
+ * Overview navigation state — workspace-rail home dashboard
+ */
+export interface OverviewNavigationState {
+  navigator: 'overview'
+  rightSidebar?: RightSidebarPanel
+}
+
+/**
  * Unified navigation state
  */
 export type NavigationState =
@@ -750,6 +774,8 @@ export type NavigationState =
   | SettingsNavigationState
   | SkillsNavigationState
   | AutomationsNavigationState
+  | IssuesNavigationState
+  | OverviewNavigationState
 
 export const isSessionsNavigation = (
   state: NavigationState
@@ -770,6 +796,14 @@ export const isSkillsNavigation = (
 export const isAutomationsNavigation = (
   state: NavigationState
 ): state is AutomationsNavigationState => state.navigator === 'automations'
+
+export const isIssuesNavigation = (
+  state: NavigationState
+): state is IssuesNavigationState => state.navigator === 'issues'
+
+export const isOverviewNavigation = (
+  state: NavigationState
+): state is OverviewNavigationState => state.navigator === 'overview'
 
 export const DEFAULT_NAVIGATION_STATE: NavigationState = {
   navigator: 'sessions',
@@ -798,6 +832,15 @@ export const getNavigationStateKey = (state: NavigationState): string => {
   }
   if (state.navigator === 'settings') {
     return `settings:${state.subpage}`
+  }
+  if (state.navigator === 'issues') {
+    if (state.details?.type === 'issue') {
+      return `issues/issue/${state.details.issueId}`
+    }
+    return 'issues'
+  }
+  if (state.navigator === 'overview') {
+    return 'overview'
   }
   // Chats
   const f = state.filter
@@ -851,6 +894,19 @@ export const parseNavigationStateKey = (key: string): NavigationState | null => 
       return { navigator: 'settings', subpage }
     }
   }
+
+  // Handle issues
+  if (key === 'issues') return { navigator: 'issues', details: null }
+  if (key.startsWith('issues/issue/')) {
+    const issueId = key.slice(12)
+    if (issueId) {
+      return { navigator: 'issues', details: { type: 'issue', issueId } }
+    }
+    return { navigator: 'issues', details: null }
+  }
+
+  // Handle overview
+  if (key === 'overview') return { navigator: 'overview' }
 
   // Handle sessions
   const parseSessionsKey = (filterKey: string, sessionId?: string): NavigationState | null => {

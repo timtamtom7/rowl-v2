@@ -162,7 +162,17 @@ export default function SkillInfoPage({ skillSlug, workspaceId, workingDirectory
         <Info_Page.Content>
           {/* Hero: Avatar, title, and description */}
           <Info_Page.Hero
-            avatar={<SkillAvatar skill={skill} fluid workspaceId={workspaceId} />}
+            avatar={
+              <EditPopover
+                trigger={
+                  <button className="cursor-pointer rounded p-0.5 -m-0.5 hover:bg-foreground/5 transition-colors">
+                    <SkillAvatar skill={skill} fluid workspaceId={workspaceId} />
+                  </button>
+                }
+                {...getEditConfig('skill-icon', skill.path)}
+                inlineExecution={true}
+              />
+            }
             title={skill.metadata.name}
             tagline={skill.metadata.description}
           />

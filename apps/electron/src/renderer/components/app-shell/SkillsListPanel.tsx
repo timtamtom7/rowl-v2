@@ -71,7 +71,24 @@ export function SkillsListPanel({
         </EntityListEmptyScreen>
       }
       mapItem={(skill) => ({
-        icon: <SkillAvatar skill={skill} size="sm" workspaceId={workspaceId} />,
+        icon: skill.path ? (
+          <EditPopover
+            align="start"
+            trigger={
+              <button
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="rounded-full transition-shadow hover:ring-2 hover:ring-accent/40"
+                aria-label={t('skillsList.editIcon', 'Edit icon')}
+              >
+                <SkillAvatar skill={skill} size="sm" workspaceId={workspaceId} />
+              </button>
+            }
+            {...getEditConfig('skill-icon', skill.path)}
+          />
+        ) : (
+          <SkillAvatar skill={skill} size="sm" workspaceId={workspaceId} />
+        ),
         title: skill.metadata.name,
         badges: (
           <span className="flex items-center gap-1.5 min-w-0">

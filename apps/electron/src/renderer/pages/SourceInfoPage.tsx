@@ -380,7 +380,17 @@ export default function SourceInfoPage({ sourceSlug, workspaceId, onDelete }: So
         <Info_Page.Content>
           {/* Hero: Avatar, title, and tagline */}
           <Info_Page.Hero
-            avatar={<SourceAvatar source={source} fluid />}
+            avatar={
+              <EditPopover
+                trigger={
+                  <button className="cursor-pointer rounded p-0.5 -m-0.5 hover:bg-foreground/5 transition-colors">
+                    <SourceAvatar source={source} fluid />
+                  </button>
+                }
+                {...getEditConfig('source-icon', source.folderPath)}
+                inlineExecution={true}
+              />
+            }
             title={source.config.name}
             tagline={source.config.tagline}
           />

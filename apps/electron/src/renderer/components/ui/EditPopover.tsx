@@ -70,8 +70,10 @@ export type EditContextKey =
   | 'default-permissions'
   | 'skill-instructions'
   | 'skill-metadata'
+  | 'skill-icon'
   | 'source-guide'
   | 'source-config'
+  | 'source-icon'
   | 'source-permissions'
   | 'source-tool-permissions'
   | 'preferences-notes'
@@ -201,6 +203,25 @@ const EDIT_CONFIGS: Record<EditContextKey, (location: string) => EditConfig> = {
     inlineExecution: true,
   }),
 
+  'skill-icon': (location) => ({
+    context: {
+      label: 'Skill Icon',
+      filePath: `${location}/SKILL.md`,
+      context:
+        'The user wants to change the icon for this skill. ' +
+        'The icon field in the YAML frontmatter can be an emoji (e.g., "⚡", "🔧", "📝") or a URL to an image. ' +
+        'Only modify the "icon" field in the frontmatter. Keep the content after frontmatter unchanged. ' +
+        'After editing, call skill_validate with the skill slug to verify the changes. ' +
+        'Confirm the new icon value.',
+    },
+    example: 'Change icon to ⚡',
+    displayLabelKey: 'editPopover.label.skillIcon',
+    exampleKey: 'editPopover.example.skillIcon',
+    model: 'fast',
+    systemPromptPreset: 'mini',
+    inlineExecution: true,
+  }),
+
   // Source editing contexts
   'source-guide': (location) => ({
     context: {
@@ -235,6 +256,24 @@ const EDIT_CONFIGS: Record<EditContextKey, (location: string) => EditConfig> = {
     displayLabelKey: 'editPopover.label.sourceConfiguration',
     exampleKey: 'editPopover.example.sourceConfig',
     model: 'default',
+    systemPromptPreset: 'mini',
+    inlineExecution: true,
+  }),
+
+  'source-icon': (location) => ({
+    context: {
+      label: 'Source Icon',
+      filePath: `${location}/config.json`,
+      context:
+        'The user wants to change the icon for this source. ' +
+        'The icon field in config.json can be an emoji (e.g., "🦝", "📝", "🔧"), a URL to an image (e.g., "https://example.com/icon.png"), or a local filename (e.g., "icon.png"). ' +
+        'Only modify the "icon" field. Keep all other fields unchanged. ' +
+        'After editing, confirm the new icon value.',
+    },
+    example: 'Change icon to 🦝',
+    displayLabelKey: 'editPopover.label.sourceIcon',
+    exampleKey: 'editPopover.example.sourceIcon',
+    model: 'fast',
     systemPromptPreset: 'mini',
     inlineExecution: true,
   }),

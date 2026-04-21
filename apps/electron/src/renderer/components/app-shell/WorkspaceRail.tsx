@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Home } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -32,7 +32,9 @@ export interface WorkspaceRailProps {
   activeWorkspaceId: string | null;
   workspaceUnreadMap?: Record<string, boolean>;
   workspaceProcessingMap?: Record<string, boolean>;
+  isOverviewActive?: boolean;
   onSelect: (workspaceId: string) => void;
+  onSelectOverview: () => void;
   onCreate: () => void;
   onContextMenu?: (workspaceId: string, e: React.MouseEvent) => void;
 }
@@ -105,7 +107,9 @@ export function WorkspaceRail({
   activeWorkspaceId,
   workspaceUnreadMap,
   workspaceProcessingMap,
+  isOverviewActive = false,
   onSelect,
+  onSelectOverview,
   onCreate,
   onContextMenu,
 }: WorkspaceRailProps) {
@@ -145,8 +149,49 @@ export function WorkspaceRail({
       )}
     >
 
+      {/* Overview entry - home icon at top */}
+      <div className="mb-2">
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onSelectOverview}
+              aria-label="Overview"
+              aria-current={isOverviewActive ? 'true' : undefined}
+              className={cn(
+                'relative flex items-center justify-center w-10 h-10',
+                'rounded-[12px] transition-all duration-150',
+                'hover:bg-accent/20',
+                isOverviewActive && 'bg-accent/20 ring-2 ring-accent',
+              )}
+            >
+              <Home className={cn(
+                'h-5 w-5',
+                isOverviewActive ? 'text-accent' : 'text-muted-foreground'
+              )} />
+            </button>
+          </TooltipTrigger>
+          <TooltipPrimitive.Portal>
+            <TooltipContent
+              side="right"
+              sideOffset={8}
+              className={cn(
+                'z-[100] overflow-hidden rounded-[8px] px-2.5 py-1.5 text-xs',
+                'bg-popover border border-border/50 text-popover-foreground shadow-md',
+                'animate-in fade-in-0 duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-75',
+              )}
+            >
+              Overview
+            </TooltipContent>
+          </TooltipPrimitive.Portal>
+        </Tooltip>
+      </div>
+
+      {/* Separator */}
+      <div className="w-8 h-px bg-border/60 mx-auto mb-2 shrink-0" aria-hidden="true" />
+
       {/* Sortable avatar list */}
-      <div className="flex-1 flex flex-col items-center gap-2 py-2 w-full overflow-y-auto overflow-x-hidden scrollbar-none">
+      <div className="flex-1 flex flex-col items-center gap-2 w-full overflow-y-auto overflow-x-hidden scrollbar-none">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={order} strategy={verticalListSortingStrategy}>
             {ordered.map((w) => (
@@ -166,7 +211,7 @@ export function WorkspaceRail({
       </div>
 
       {/* Separator + add button */}
-      <div className="w-8 h-px bg-border/60 mx-auto shrink-0" aria-hidden="true" />
+      <div className="w-8 h-px bg-border/60 mx-auto my-2 shrink-0" aria-hidden="true" />
       <div className="flex items-center justify-center py-2 shrink-0">
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
@@ -175,14 +220,15 @@ export function WorkspaceRail({
               onClick={onCreate}
               aria-label="Add workspace"
               className={cn(
-                'flex items-center justify-center w-9 h-9',
-                'rounded-[18px] hover:rounded-[12px]',
-                'border-2 border-dashed border-border text-muted-foreground',
-                'hover:border-foreground/40 hover:text-foreground',
-                'transition-[border-color,color,border-radius] duration-150',
+                'flex items-center justify-center w-10 h-10',
+                'rounded-[16px] hover:rounded-[12px]',
+                'border-2 border-foreground/30 text-muted-foreground',
+                'hover:border-accent hover:text-accent',
+                'hover:bg-accent/10',
+                'transition-[border-color,color,border-radius,background] duration-150',
               )}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
             </button>
           </TooltipTrigger>
           <TooltipPrimitive.Portal>

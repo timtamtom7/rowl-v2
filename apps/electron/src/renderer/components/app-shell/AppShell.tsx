@@ -31,6 +31,7 @@ import {
   Radio,
   Bot,
   Info,
+  Lightbulb,
 } from "lucide-react"
 // SessionStatusIcons no longer used - icons come from dynamic sessionStatuses
 import { SourceAvatar } from "@/components/ui/source-avatar"
@@ -75,9 +76,11 @@ import { type ChatGroupingMode } from "./SessionList"
 import { AllSessionsView } from "./AllSessionsView"
 import { MainContentPanel } from "./MainContentPanel"
 import { PanelStackContainer } from "./PanelStackContainer"
+import { OverviewPanel } from "@/components/overview/OverviewPanel"
 import type { ChatDisplayHandle } from "./ChatDisplay"
 import { LeftSidebar } from "./LeftSidebar"
 import { useSession } from "@/hooks/useSession"
+import { IssuesPanel } from "./IssuesPanel"
 import {
   useAllSessionsDropdownModePersistence,
   useActiveWorkspaceAllSessionsMode,
@@ -119,6 +122,8 @@ import {
   isSettingsNavigation,
   isSkillsNavigation,
   isAutomationsNavigation,
+  isIssuesNavigation,
+  isOverviewNavigation,
   type NavigationState,
 } from "@/contexts/NavigationContext"
 import type { SettingsSubpage } from "../../../shared/types"
@@ -604,6 +609,26 @@ function AppShellContent({
   // UNIFIED NAVIGATION STATE - single source of truth from NavigationContext
   // Derived from focused panel's route — all panels are peers
   const navState = useNavigationState()
+
+  // Overview / Issues full-screen modes — both derive from navState so they
+  // persist across reloads and support deep links. They render the panel in
+  // place of the entire PanelStackContainer.
+  const isOverviewActive = isOverviewNavigation(navState)
+  const isIssuesActive = isIssuesNavigation(navState)
+  const isFullScreenPanel = isOverviewActive || isIssuesActive
+
+  const handleSelectOverview = React.useCallback(() => {
+    navigate(routes.view.overview())
+  }, [])
+
+  // When user picks a workspace from the rail, exit any full-screen mode
+  // by navigating back to the workspace's default view.
+  const handleSelectWorkspace = React.useCallback((workspaceId: string) => {
+    if (isFullScreenPanel) {
+      navigate(routes.view.allSessions())
+    }
+    void onSelectWorkspace(workspaceId)
+  }, [onSelectWorkspace, isFullScreenPanel])
 
   const store = useStore()
   const panelStack = useAtomValue(panelStackAtom)
@@ -1800,6 +1825,11 @@ function AppShellContent({
     navigate(routes.view.settings(subpage))
   }, [])
 
+  // Handler for issues view
+  const handleIssuesClick = useCallback(() => {
+    navigate(routes.view.issues())
+  }, [])
+
   // Handler for What's New overlay
   const handleWhatsNewClick = useCallback(async () => {
     const content = await window.electronAPI.getReleaseNotes()
@@ -2039,11 +2069,12 @@ function AppShellContent({
     result.push({ id: 'nav:sources', type: 'nav', action: handleSourcesClick })
     result.push({ id: 'nav:skills', type: 'nav', action: handleSkillsClick })
     result.push({ id: 'nav:automations', type: 'nav', action: handleAutomationsClick })
+    result.push({ id: 'nav:issues', type: 'nav', action: handleIssuesClick })
     result.push({ id: 'nav:settings', type: 'nav', action: () => handleSettingsClick('app') })
     result.push({ id: 'nav:whats-new', type: 'nav', action: handleWhatsNewClick })
 
     return result
-  }, [handleAllSessionsClick, handleFlaggedClick, handleArchivedClick, handleSessionStatusClick, effectiveSessionStatuses, handleLabelClick, labelConfigs, labelTree, viewConfigs, handleViewClick, handleSourcesClick, handleSkillsClick, handleAutomationsClick, handleSettingsClick, handleWhatsNewClick])
+  }, [handleAllSessionsClick, handleFlaggedClick, handleArchivedClick, handleSessionStatusClick, effectiveSessionStatuses, handleLabelClick, labelConfigs, labelTree, viewConfigs, handleViewClick, handleSourcesClick, handleSkillsClick, handleAutomationsClick, handleIssuesClick, handleSettingsClick, handleWhatsNewClick])
 
   // Toggle folder expanded state
   const handleToggleFolder = React.useCallback((path: string) => {
@@ -2324,7 +2355,9 @@ function AppShellContent({
                 workspaces={workspaces}
                 activeWorkspaceId={activeWorkspaceId}
                 workspaceUnreadMap={workspaceUnreadMap}
-                onSelect={(id) => { void onSelectWorkspace(id) }}
+                isOverviewActive={isOverviewActive}
+                onSelect={handleSelectWorkspace}
+                onSelectOverview={handleSelectOverview}
                 onCreate={() => setShowWorkspaceCreation(true)}
                 onContextMenu={(id, e) => handleWorkspaceRailContextMenu(id, e)}
               />
@@ -2395,6 +2428,23 @@ function AppShellContent({
           clipPath: `inset(0 0 0 0 round ${RADIUS_EDGE}px 0 0 ${RADIUS_EDGE}px)`,
         }}
       >
+        {isOverviewActive ? (
+          <div className="flex-1 min-w-0 flex flex-col" style={{ height: '100%' }}>
+            <OverviewPanel />
+          </div>
+        ) : isIssuesActive ? (
+          <div className="flex-1 min-w-0 flex flex-col" style={{ height: '100%' }}>
+            <IssuesPanel
+              onBack={() => navigate(routes.view.allSessions())}
+              onCreateSession={(title) => {
+                navigate(routes.view.allSessions())
+                setTimeout(() => {
+                  navigate(routes.action.newSession({ input: title, send: true }))
+                }, 100)
+              }}
+            />
+          </div>
+        ) : (
         <PanelStackContainer
           sidebarSlot={
             <div
@@ -2408,11 +2458,11 @@ function AppShellContent({
             <div className="flex h-full flex-col select-none">
               {/* Sidebar Top Section */}
               <div className="flex-1 flex flex-col min-h-0">
-                {/* New Session Button - Gmail-style, with context menu for "Open in New Window" */}
-                <div className="px-2 pt-3 pb-2 shrink-0">
+                {/* New Session + New Issue row - Gmail-style, 50/50 split */}
+                <div className="px-2 pt-3 pb-2 shrink-0 flex gap-1.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <ContextMenu modal={true}>
                           <ContextMenuTrigger asChild>
                             <Button
@@ -2422,7 +2472,7 @@ function AppShellContent({
                               data-tutorial="new-chat-button"
                             >
                               <SquarePenRounded className="h-3.5 w-3.5 shrink-0" />
-                              {t("session.newSession")}
+                              <span className="truncate">{t("session.newSession")}</span>
                             </Button>
                           </ContextMenuTrigger>
                           <StyledContextMenuContent>
@@ -2434,6 +2484,19 @@ function AppShellContent({
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="right">{newChatHotkey}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        onClick={handleIssuesClick}
+                        className="flex-1 min-w-0 justify-start gap-2 py-[7px] px-2 text-[13px] font-normal rounded-[6px] shadow-minimal bg-background"
+                      >
+                        <Lightbulb className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{t("session.newIssue", "New issue")}</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{t("session.newIssueTooltip", "Capture an idea without starting a session")}</TooltipContent>
                   </Tooltip>
                 </div>
                 {/* Primary Nav: All Sessions (▸ Statuses, Flagged, Archived), Labels | Sources, Skills | Settings */}
@@ -2652,6 +2715,14 @@ function AppShellContent({
                     },
                     // --- Separator ---
                     { id: "separator:skills-settings", type: "separator" },
+                    // --- Issues ---
+                    {
+                      id: "nav:issues",
+                      title: t("sidebar.issues"),
+                      icon: Lightbulb,
+                      variant: isIssuesNavigation(navState) ? "default" : "ghost",
+                      onClick: handleIssuesClick,
+                    },
                     // --- Settings ---
                     {
                       id: "nav:settings",
@@ -3370,9 +3441,10 @@ function AppShellContent({
           isCompact={isAutoCompact}
           isResizing={!!isResizing}
         />
+        )}
 
-        {/* Sidebar Resize Handle (absolute, hidden in focused mode) */}
-        {!effectiveSidebarAndNavigatorHidden && (
+        {/* Sidebar Resize Handle (absolute, hidden in focused mode and full-screen panels) */}
+        {!effectiveSidebarAndNavigatorHidden && !isFullScreenPanel && (
         <div
           ref={resizeHandleRef}
           onMouseDown={(e) => { e.preventDefault(); setIsResizing('sidebar') }}
@@ -3404,8 +3476,8 @@ function AppShellContent({
         </div>
         )}
 
-        {/* Session List Resize Handle (absolute, hidden in focused mode) */}
-        {!effectiveSidebarAndNavigatorHidden && (
+        {/* Session List Resize Handle (absolute, hidden in focused mode and full-screen panels) */}
+        {!effectiveSidebarAndNavigatorHidden && !isFullScreenPanel && (
         <div
           ref={sessionListHandleRef}
           onMouseDown={(e) => { e.preventDefault(); setIsResizing('session-list') }}

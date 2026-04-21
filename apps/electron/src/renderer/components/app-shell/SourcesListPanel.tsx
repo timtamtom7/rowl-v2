@@ -114,8 +114,24 @@ export function SourcesListPanel({
         const typeConfig = SOURCE_TYPE_CONFIG[source.config.type]
         const statusConfig = SOURCE_STATUS_CONFIG[connectionStatus]
         const subtitle = source.config.tagline || source.config.provider || ''
+        const avatar = <SourceAvatar source={source} size="sm" />
         return {
-          icon: <SourceAvatar source={source} size="sm" />,
+          icon: source.folderPath ? (
+            <EditPopover
+              align="start"
+              trigger={
+                <button
+                  type="button"
+                  onClick={(e) => e.stopPropagation()}
+                  className="rounded-full transition-shadow hover:ring-2 hover:ring-accent/40"
+                  aria-label={t('sourcesList.editIcon', 'Edit icon')}
+                >
+                  {avatar}
+                </button>
+              }
+              {...getEditConfig('source-icon', source.folderPath)}
+            />
+          ) : avatar,
           title: source.config.name,
           badges: (
             <>
