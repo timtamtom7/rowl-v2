@@ -60,6 +60,9 @@ export interface BroadcastEventMap {
   // Copilot device code event
   [RPC_CHANNELS.copilot.DEVICE_CODE]: [data: { userCode: string; verificationUri: string }]
 
+  // Google Gemini CLI device code event
+  [RPC_CHANNELS.googleGeminiCli.DEVICE_CODE]: [data: { verificationUri: string }]
+
   // Menu events (per-window, no payload)
   [RPC_CHANNELS.menu.NEW_CHAT]: []
   [RPC_CHANNELS.menu.OPEN_SETTINGS]: []
