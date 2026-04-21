@@ -857,17 +857,14 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       deps.platform.logger?.info(`Starting Google Gemini CLI OAuth flow for connection: ${connectionSlug}`)
 
       // Use Pi SDK's loginGeminiCli — handles OAuth callback
-      const credentials = await loginGeminiCli({
-        url,
-        instructions,
-      } => {
+      const credentials = await loginGeminiCli((info) => {
         deps.platform.logger?.info(`[Google Gemini CLI OAuth] Opening auth URL`)
         // Push device/code info to client if available
         pushTyped(server, RPC_CHANNELS.googleGeminiCli.DEVICE_CODE, { to: 'client', clientId: ctx.clientId }, {
-          verificationUri: url,
+          verificationUri: info.url,
         })
         // Open auth URL in browser
-        server.invokeClient(ctx.clientId, CLIENT_OPEN_EXTERNAL, url).catch(err => {
+        server.invokeClient(ctx.clientId, CLIENT_OPEN_EXTERNAL, info.url).catch(err => {
           deps.platform.logger?.warn(`Failed to open browser for Google Gemini CLI OAuth: ${err}`)
         })
       }, (message) => {
