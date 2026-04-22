@@ -4,6 +4,7 @@ import matter from 'gray-matter';
 import type { Issue } from './types.ts';
 import { slugify } from './slug.ts';
 import { formatTimestamp } from './timestamp.ts';
+import { normalizePath } from '../utils/paths.ts';
 
 export interface CopyPlanForwardInput {
   sessionPlanPath: string;        // absolute
@@ -28,6 +29,14 @@ export interface PlanFrontmatter {
  * prepending frontmatter that links the plan back to its issue + session.
  *
  * Returns the workspace-relative path of the written file.
+ *
+ * @remarks
+ * **Concurrency:** This function is designed to be called serially from the
+ * Electron main process' event loop. The `countExistingPlans` →
+ * `resolveCollision` → atomic-write chain is TOCTOU-safe only under that
+ * assumption. Do not invoke from worker threads or concurrent async flows
+ * against the same target directory without adding a per-target lock —
+ * doing so will corrupt `planVersion` counts and may race collision suffixes.
  */
 export async function copyPlanForward(input: CopyPlanForwardInput): Promise<string> {
   const { sessionPlanPath, sessionId, issue, workspaceRoot, planStoragePath } = input;
@@ -57,7 +66,7 @@ export async function copyPlanForward(input: CopyPlanForwardInput): Promise<stri
   const output = matter.stringify(stripExistingFrontmatter(body), fm);
 
   atomicWriteFileSync(targetAbs, output);
-  return relative(workspaceRoot, targetAbs).split('\\').join('/');
+  return normalizePath(relative(workspaceRoot, targetAbs));
 }
 
 export function countExistingPlans(dir: string): number {
