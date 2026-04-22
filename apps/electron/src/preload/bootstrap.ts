@@ -35,6 +35,7 @@ import {
 import type { ConfirmDialogSpec, FileDialogSpec } from '@craft-agent/server-core/transport'
 import type { RpcClient } from '@craft-agent/server-core/transport'
 import type { RemoteServerConfig } from '@craft-agent/core/types'
+import type { Issue } from '@craft-agent/shared/issues'
 import type { ElectronAPI } from '../shared/types'
 
 // ---------------------------------------------------------------------------
@@ -423,5 +424,23 @@ client.onConnectionStateChanged((state) => {
 
 // i18n: sync language changes to main process (for native menus/dialogs)
 ;(api as ElectronAPI).changeLanguage = (lang: string) => ipcRenderer.invoke('i18n:changeLanguage', lang)
+
+// Issue pipeline (Task 8) — local-only IPC backed by workspace filesystem
+;(api as ElectronAPI).issues = {
+  list: (workspaceId: string) => ipcRenderer.invoke('issues:list', workspaceId),
+  read: (workspaceId: string, id: string) => ipcRenderer.invoke('issues:read', workspaceId, id),
+  write: (workspaceId: string, issue: Issue) => ipcRenderer.invoke('issues:write', workspaceId, issue),
+  delete: (workspaceId: string, id: string) => ipcRenderer.invoke('issues:delete', workspaceId, id),
+  writeAttachment: (workspaceId: string, issueId: string, ext: string, bytes: Uint8Array) =>
+    ipcRenderer.invoke('issues:write-attachment', workspaceId, issueId, ext, bytes),
+}
+
+// Plan pipeline (Task 8) — local-only IPC for copy-forward, list, and read
+;(api as ElectronAPI).plans = {
+  copyForward: (workspaceId: string, sessionPlanPath: string, sessionId: string, issueId: string | undefined) =>
+    ipcRenderer.invoke('plans:copy-forward', workspaceId, sessionPlanPath, sessionId, issueId),
+  list: (workspaceId: string) => ipcRenderer.invoke('plans:list', workspaceId),
+  read: (workspaceId: string, relPath: string) => ipcRenderer.invoke('plans:read', workspaceId, relPath),
+}
 
 contextBridge.exposeInMainWorld('electronAPI', api)

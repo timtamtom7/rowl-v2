@@ -73,6 +73,8 @@ import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
 import { SessionManager, setSessionPlatform, setSessionRuntimeHooks } from '@craft-agent/server-core/sessions'
 import { registerAllRpcHandlers } from './handlers/index'
 import { registerCoreRpcHandlers, cleanupSessionFileWatchForClient } from '@craft-agent/server-core/handlers/rpc'
+import { registerIssuesIpc } from './ipc/issues-ipc'
+import { registerPlansIpc } from './ipc/plans-ipc'
 import type { PlatformServices } from '../runtime/platform'
 import { createElectronPlatform } from './platform'
 import type { HandlerDeps } from './handlers/handler-deps'
@@ -678,6 +680,10 @@ app.whenReady().then(async () => {
         const { removeWorkspace: remove } = await import('@craft-agent/shared/config')
         return remove(workspaceId)
       })
+
+      // Issue + plan pipeline IPC (Task 8 of issue → plan pipeline)
+      registerIssuesIpc()
+      registerPlansIpc()
 
       // Cross-server RPC — invoke a channel on an arbitrary remote server
       ipcMain.handle('server:invokeOnServer', async (_event, url: string, token: string, channel: string, ...args: unknown[]) => {

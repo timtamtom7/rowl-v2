@@ -71,6 +71,10 @@ export type { ExportResourcesOptions, ExportResult, ResourceImportMode, Resource
 import type { LlmConnection, LlmConnectionWithStatus, LlmAuthType, LlmProviderType, NetworkProxySettings } from '@craft-agent/shared/config';
 export type { LlmConnection, LlmConnectionWithStatus, LlmAuthType, LlmProviderType, NetworkProxySettings };
 
+// Issue types (for Task 8 IPC surface)
+import type { Issue } from '@craft-agent/shared/issues';
+export type { Issue };
+
 // =============================================================================
 // GUI-only types (not used by server/handler code)
 // =============================================================================
@@ -663,6 +667,39 @@ export interface ElectronAPI {
   // Resources (cross-workspace export/import)
   exportResources(workspaceId: string, options: ExportResourcesOptions): Promise<ExportResult>
   importResources(workspaceId: string, bundle: ResourceBundle, mode: ResourceImportMode): Promise<ResourceImportResult>
+
+  // Issue pipeline (Task 8)
+  issues: {
+    list(workspaceId: string): Promise<Issue[]>
+    read(workspaceId: string, id: string): Promise<Issue | null>
+    write(workspaceId: string, issue: Issue): Promise<void>
+    delete(workspaceId: string, id: string): Promise<void>
+    writeAttachment(workspaceId: string, issueId: string, ext: string, bytes: Uint8Array): Promise<{ path: string; hash: string }>
+  }
+
+  // Plan pipeline (Task 8)
+  plans: {
+    copyForward(workspaceId: string, sessionPlanPath: string, sessionId: string, issueId: string | undefined): Promise<string>
+    list(workspaceId: string): Promise<Array<{
+      workspaceRelativePath: string
+      issueId: string | null
+      issueSlug: string | null
+      sessionId: string
+      acceptedAt: string
+      planVersion: number
+    }>>
+    read(workspaceId: string, relPath: string): Promise<{
+      frontmatter: {
+        workspaceRelativePath: string
+        issueId: string | null
+        issueSlug: string | null
+        sessionId: string
+        acceptedAt: string
+        planVersion: number
+      }
+      body: string
+    } | null>
+  }
 }
 
 // =============================================================================
