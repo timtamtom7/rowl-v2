@@ -260,12 +260,7 @@ export function MainContentPanel({
       <Panel variant="grow" className={className}>
         <IssuesPanel
           onBack={() => navigate(routes.view.allSessions())}
-          onCreateSession={(title) => {
-            navigate(routes.view.allSessions())
-            setTimeout(() => {
-              navigate(routes.action.newSession({ input: title, send: true }))
-            }, 100)
-          }}
+          onOpenSession={(sessionId) => navigate(routes.view.allSessions(sessionId))}
           workspaceId={activeWorkspaceId || null}
         />
       </Panel>

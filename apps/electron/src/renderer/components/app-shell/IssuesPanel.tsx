@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { IssueCard } from "./IssueCard"
 import { IssueDetailModal } from "./IssueDetailModal"
 import { useIssues } from "@/hooks/useIssues"
+import { useStartSessionFromIssue } from "@/hooks/useStartSessionFromIssue"
 import type { Issue, IssueStatus } from "@craft-agent/shared/issues"
 import { ISSUE_STATUS_INFO, getNextStatus } from "@craft-agent/shared/issues"
 import { cn } from "@/lib/utils"
@@ -43,11 +44,11 @@ const PRIORITY_DOT: Record<string, string> = {
 
 interface IssuesPanelProps {
   onBack?: () => void
-  onCreateSession: (title: string) => void
+  onOpenSession: (sessionId: string) => void
   workspaceId: string | null
 }
 
-export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) {
+export function IssuesPanel({ onOpenSession, workspaceId }: IssuesPanelProps) {
   const { t } = useTranslation()
   const {
     issues,
@@ -104,12 +105,19 @@ export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) 
     void updateIssueStatus(issueId, newStatus)
   }
 
-  const handleStartSession = (issue: Issue) => {
-    onCreateSession(issue.title)
-  }
+  const startSessionFromIssue = useStartSessionFromIssue({
+    workspaceId: workspaceId ?? "",
+    updateIssue,
+    onSessionCreated: onOpenSession,
+  })
 
-  const handleOpenSession = (sessionId: string) => {
-    console.warn("[issues] onOpenSession not wired yet", sessionId)
+  const handleStartSession = async (issue: Issue) => {
+    if (!workspaceId) return
+    try {
+      await startSessionFromIssue(issue)
+    } catch (err) {
+      console.error("[issues] Failed to start session", err)
+    }
   }
 
   const handleOpenPlan = (path: string) => {
@@ -303,7 +311,7 @@ export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) 
                 issue={issue}
                 onSelect={() => setSelectedIssue(issue)}
                 onStatusCycle={() => handleStatusChange(issue.id, getNextStatus(issue.status))}
-                onStartSession={() => handleStartSession(issue)}
+                onStartSession={() => { void handleStartSession(issue) }}
               />
             ))}
           </ul>
@@ -315,7 +323,7 @@ export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) 
                 issue={issue}
                 onSelect={() => setSelectedIssue(issue)}
                 onStatusChange={(status) => handleStatusChange(issue.id, status)}
-                onStartSession={() => handleStartSession(issue)}
+                onStartSession={() => { void handleStartSession(issue) }}
               />
             ))}
           </div>
@@ -330,9 +338,9 @@ export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) 
           onClose={() => setSelectedIssue(null)}
           onUpdate={updateIssue}
           onDelete={() => handleDelete(selectedIssue.id)}
-          onStartSession={(issue) => { handleStartSession(issue); setSelectedIssue(null) }}
+          onStartSession={(issue) => { void handleStartSession(issue); setSelectedIssue(null) }}
           onStatusChange={(status) => handleStatusChange(selectedIssue.id, status)}
-          onOpenSession={handleOpenSession}
+          onOpenSession={onOpenSession}
           onOpenPlan={handleOpenPlan}
         />
       )}
