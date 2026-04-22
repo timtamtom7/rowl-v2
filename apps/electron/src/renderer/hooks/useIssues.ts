@@ -1,11 +1,8 @@
 import { useState, useEffect, useCallback } from "react"
 import type { Issue, IssueStatus, IssuePriority } from "@craft-agent/shared/issues"
+import { createIssue, generateIssueId } from "@craft-agent/shared/issues"
 
 const STORAGE_KEY = "craft-agent-issues"
-
-function generateId(): string {
-  return `issue_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
-}
 
 function loadFromStorage(): Issue[] {
   try {
@@ -33,15 +30,9 @@ export function useIssues() {
     title: string,
     options?: { description?: string; priority?: IssuePriority }
   ): Issue => {
-    const now = new Date().toISOString()
     const issue: Issue = {
-      id: generateId(),
-      title,
-      description: options?.description,
-      status: "backlog",
-      priority: options?.priority ?? "medium",
-      createdAt: now,
-      updatedAt: now,
+      ...createIssue(title, options),
+      id: generateIssueId(),
     }
 
     setIssues(prev => {

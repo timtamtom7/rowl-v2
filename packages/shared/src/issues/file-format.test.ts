@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import type { Issue } from './types.ts';
-import { parseIssueFile, serializeIssueFile } from './file-format.ts';
+import { createIssue, generateIssueId } from './types.ts';
+import { IssueParseError, parseIssueFile, serializeIssueFile } from './file-format.ts';
 
 const FIXTURE: Issue = {
   id: 'issue_abc123',
@@ -16,10 +17,11 @@ const FIXTURE: Issue = {
 };
 
 describe('parseIssueFile / serializeIssueFile', () => {
-  it('round-trips all fields', () => {
+  it('round-trips all fields with no extras', () => {
     const text = serializeIssueFile(FIXTURE);
-    const parsed = parseIssueFile(text);
-    expect(parsed).toEqual(FIXTURE);
+    const { issue, extras } = parseIssueFile(text);
+    expect(issue).toEqual(FIXTURE);
+    expect(extras).toEqual({});
   });
 
   it('migrates legacy singular linkedSessionId to linkedSessionIds', () => {
@@ -34,13 +36,14 @@ linkedSessionId: old-session-id
 ---
 
 body`;
-    const parsed = parseIssueFile(legacy);
-    expect(parsed.linkedSessionIds).toEqual(['old-session-id']);
-    expect(parsed.linkedPlanPaths).toEqual([]);
-    expect((parsed as unknown as { linkedSessionId?: string }).linkedSessionId).toBeUndefined();
+    const { issue, extras } = parseIssueFile(legacy);
+    expect(issue.linkedSessionIds).toEqual(['old-session-id']);
+    expect(issue.linkedPlanPaths).toEqual([]);
+    // Legacy key is migrated, not preserved as an extra.
+    expect(extras).not.toHaveProperty('linkedSessionId');
   });
 
-  it('defaults missing linkedPlanPaths and linkedSessionIds to []', () => {
+  it('defaults missing linkedPlanPaths and linkedSessionIds to [] and has no extras', () => {
     const minimal = `---
 id: issue_mini
 title: Minimal
@@ -51,13 +54,14 @@ updatedAt: 2026-01-01T00:00:00.000Z
 ---
 
 `;
-    const parsed = parseIssueFile(minimal);
-    expect(parsed.linkedSessionIds).toEqual([]);
-    expect(parsed.linkedPlanPaths).toEqual([]);
-    expect(parsed.attachments).toBeUndefined();
+    const { issue, extras } = parseIssueFile(minimal);
+    expect(issue.linkedSessionIds).toEqual([]);
+    expect(issue.linkedPlanPaths).toEqual([]);
+    expect(issue.attachments).toBeUndefined();
+    expect(extras).toEqual({});
   });
 
-  it('preserves unknown frontmatter keys on round-trip', () => {
+  it('preserves unknown frontmatter keys via the extras object and survives a shallow-clone edit', () => {
     const withExtra = `---
 id: issue_x
 title: Has extra
@@ -67,22 +71,38 @@ createdAt: 2026-01-01T00:00:00.000Z
 updatedAt: 2026-01-01T00:00:00.000Z
 linkedSessionIds: []
 linkedPlanPaths: []
-futureField: hello
+futureField: someValue
 ---
 
 body`;
-    const parsed = parseIssueFile(withExtra);
-    const serialized = serializeIssueFile(parsed);
-    expect(serialized).toContain('futureField: hello');
+    const { issue, extras } = parseIssueFile(withExtra);
+    expect(extras.futureField).toBe('someValue');
+
+    // Realistic edit flow: caller shallow-clones the issue, flips a field,
+    // and writes back. Extras must survive because they are tracked separately.
+    const serialized = serializeIssueFile({ ...issue, status: 'done' }, extras);
+    expect(serialized).toContain('futureField: someValue');
+    expect(serialized).toContain('status: done');
+
+    const { issue: reparsed, extras: reparsedExtras } = parseIssueFile(serialized);
+    expect(reparsed.status).toBe('done');
+    expect(reparsedExtras.futureField).toBe('someValue');
   });
 
-  it('throws a typed error on malformed frontmatter', () => {
+  it('throws a typed IssueParseError on malformed frontmatter', () => {
     const broken = `---
 id: issue_x
 title: "unterminated
 ---
 
 body`;
-    expect(() => parseIssueFile(broken)).toThrow(/frontmatter/i);
+    expect(() => parseIssueFile(broken)).toThrow(IssueParseError);
+  });
+
+  it('round-trips an issue with no description as undefined', () => {
+    const issue: Issue = { ...createIssue('Just a title'), id: generateIssueId() };
+    const { issue: parsed } = parseIssueFile(serializeIssueFile(issue));
+    expect(parsed.description).toBeUndefined();
+    expect(parsed.title).toBe('Just a title');
   });
 });

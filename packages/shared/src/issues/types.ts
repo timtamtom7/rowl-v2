@@ -31,7 +31,7 @@ export function createIssue(
   const now = new Date().toISOString();
   return {
     title,
-    description: options?.description ?? '',
+    description: options?.description,
     status: 'backlog',
     priority: options?.priority ?? 'medium',
     createdAt: now,

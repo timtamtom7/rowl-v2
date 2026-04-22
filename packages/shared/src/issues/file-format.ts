@@ -17,24 +17,40 @@ interface LegacyIssueFrontmatter {
 }
 
 export class IssueParseError extends Error {
-  constructor(message: string, cause?: unknown) {
-    super(message);
+  static readonly code = 'ISSUE_PARSE_ERROR' as const;
+  readonly code = IssueParseError.code;
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
     this.name = 'IssueParseError';
-    if (cause !== undefined) (this as { cause?: unknown }).cause = cause;
   }
 }
 
 /**
- * Parse a markdown-with-frontmatter issue file into an `Issue`.
- * Migrates legacy singular `linkedSessionId` → `linkedSessionIds: [id]`.
- * Throws `IssueParseError` on malformed YAML.
+ * Result of parsing an issue file.
+ *
+ * `issue` contains only the declared `Issue` fields. `extras` holds any
+ * unknown frontmatter keys so they can be round-tripped back to disk without
+ * being smuggled onto the `Issue` object itself.
  */
-export function parseIssueFile(text: string): Issue {
+export interface ParsedIssue {
+  issue: Issue;
+  extras: Record<string, unknown>;
+}
+
+/**
+ * Parse a markdown-with-frontmatter issue file.
+ *
+ * - Migrates legacy singular `linkedSessionId` -> `linkedSessionIds: [id]`.
+ *   The legacy key is dropped from `extras` (it is migrated, not preserved).
+ * - Unknown frontmatter keys are returned in `extras` for round-trip safety.
+ * - Throws `IssueParseError` on malformed YAML.
+ */
+export function parseIssueFile(text: string): ParsedIssue {
   let parsed: matter.GrayMatterFile<string>;
   try {
     parsed = matter(text);
   } catch (err) {
-    throw new IssueParseError('Malformed issue frontmatter', err);
+    throw new IssueParseError('Malformed issue frontmatter', { cause: err });
   }
 
   const fm = parsed.data as LegacyIssueFrontmatter;
@@ -49,17 +65,22 @@ export function parseIssueFile(text: string): Issue {
   const linkedPlanPaths = Array.isArray(fm.linkedPlanPaths) ? fm.linkedPlanPaths : [];
   const attachments = Array.isArray(fm.attachments) ? fm.attachments : undefined;
 
-  const description = parsed.content.trim() === '' ? fm.description ?? '' : parsed.content.replace(/^\n+/, '').replace(/\n+$/, '');
+  const description =
+    parsed.content.trim() === ''
+      ? fm.description ?? ''
+      : parsed.content.replace(/^\n+/, '').replace(/\n+$/, '');
 
   // Collect unknown frontmatter keys for round-trip preservation.
+  // `linkedSessionId` is intentionally dropped — it has been migrated into
+  // `linkedSessionIds` and should not be persisted alongside the new shape.
   const knownKeys = new Set([
     'id', 'title', 'description', 'status', 'priority',
     'createdAt', 'updatedAt', 'linkedSessionId', 'linkedSessionIds',
     'linkedPlanPaths', 'attachments',
   ]);
-  const extra: Record<string, unknown> = {};
+  const extras: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fm)) {
-    if (!knownKeys.has(key)) extra[key] = value;
+    if (!knownKeys.has(key)) extras[key] = value;
   }
 
   const issue: Issue = {
@@ -75,27 +96,22 @@ export function parseIssueFile(text: string): Issue {
     ...(attachments ? { attachments } : {}),
   };
 
-  // Attach extra keys directly onto the object for round-trip preservation.
-  if (Object.keys(extra).length > 0) {
-    Object.assign(issue, extra);
-  }
-
-  return issue;
+  return { issue, extras };
 }
 
 /**
  * Serialize an `Issue` to markdown-with-frontmatter.
- * Body is the issue's `description`. Preserves any unknown frontmatter keys
- * passed in via `extraFrontmatter` (round-trip safety).
+ *
+ * Body is the issue's `description`. `extras` is any unknown frontmatter keys
+ * the caller wants to preserve (typically the `extras` returned by
+ * `parseIssueFile`). Core `Issue` fields are written first, then extras — so
+ * output ordering stays stable across round-trips.
+ *
+ * The legacy `linkedSessionId` key is explicitly dropped if present in extras.
  */
-const KNOWN_ISSUE_KEYS = new Set([
-  'id', 'title', 'description', 'status', 'priority',
-  'createdAt', 'updatedAt', 'linkedSessionIds', 'linkedPlanPaths', 'attachments',
-]);
-
 export function serializeIssueFile(
   issue: Issue,
-  extraFrontmatter?: Record<string, unknown>,
+  extras: Record<string, unknown> = {},
 ): string {
   const fm: Record<string, unknown> = {
     id: issue.id,
@@ -111,16 +127,10 @@ export function serializeIssueFile(
     fm.attachments = issue.attachments;
   }
 
-  // Preserve any extra keys that were attached to the issue object at parse time.
-  for (const [key, value] of Object.entries(issue as Record<string, unknown>)) {
-    if (!KNOWN_ISSUE_KEYS.has(key) && key !== 'linkedSessionId') fm[key] = value;
-  }
-
-  // Also merge explicit extraFrontmatter (caller-provided).
-  if (extraFrontmatter) {
-    for (const [key, value] of Object.entries(extraFrontmatter)) {
-      if (!(key in fm) && key !== 'linkedSessionId') fm[key] = value;
-    }
+  for (const [key, value] of Object.entries(extras)) {
+    if (key === 'linkedSessionId') continue; // migrated; never re-emit
+    if (key in fm) continue; // never override a core field
+    fm[key] = value;
   }
 
   return matter.stringify(issue.description ?? '', fm);
