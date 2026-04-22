@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, Home } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
