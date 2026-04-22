@@ -3561,7 +3561,7 @@ function AppShellContent({
           }
           navigatorWidth={isAutoCompact ? sessionListWidth : (effectiveSidebarAndNavigatorHidden || isFullScreenPanel ? 0 : sessionListWidth)}
           isSidebarAndNavigatorHidden={effectiveSidebarAndNavigatorHidden}
-          isRightSidebarVisible={false}
+          isRightSidebarVisible={rightSidebarVisible}
           isCompact={isAutoCompact}
           isResizing={!!isResizing}
         />

@@ -84,10 +84,14 @@ preference is a user-level preference.
 
 Register a new zone `'right-sidebar'` in the focus zone system. Navigation:
 
-- `ArrowRight` from `'chat'` → `'right-sidebar'` (only when visible).
-- `ArrowLeft` from `'right-sidebar'` → `'chat'`.
+- Appended to `ZONE_ORDER` so `Tab` / `Shift+Tab` cycles into it when visible.
+- Dedicated shortcut `Cmd+4` via `nav.focusRightSidebar` action (opens the
+  sidebar first if it's hidden, then focuses the zone).
 - When sidebar hides (manually or via auto-compact), focus returns to the
   last active non-sidebar zone.
+- Arrow-key inter-zone navigation is deferred — no existing zone uses arrow
+  keys for this, so matching the existing pattern (Tab + Cmd+N) is more
+  consistent than introducing a one-off.
 
 ---
 
@@ -168,8 +172,8 @@ Centered block, roughly 40% from the top of the sidebar:
 - When `isAutoCompact` goes true → sidebar hides without touching storage.
 - When `isAutoCompact` returns to false → sidebar restores prior visibility.
 - User-initiated toggle during auto-compact persists and wins.
-- Focus zone: `ArrowRight` from chat focuses sidebar when visible; is a
-  no-op when hidden.
+- Focus zone: `Tab` from chat cycles to sidebar zone when visible; `Cmd+4`
+  opens the sidebar (if hidden) and focuses it.
 
 ### Smoke
 
