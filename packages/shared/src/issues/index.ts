@@ -6,3 +6,4 @@
 
 export * from './types.ts';
 export * from './file-format.ts';
+export * from './slug.ts';
