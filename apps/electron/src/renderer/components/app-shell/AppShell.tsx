@@ -1807,10 +1807,16 @@ function AppShellContent({
   }, [isSidebarVisible])
 
   // Persist right sidebar visibility whenever it changes via user action.
-  // (Auto-compact uses a separate transient ref and must NOT go through this path.)
+  // Skip writes while auto-compact is active: the auto-compact effect
+  // transiently hides the sidebar, and we don't want that transient state
+  // to overwrite the user's stored preference. Manual toggles during
+  // auto-compact are still preserved via rightSidebarPreAutoCompactRef
+  // (see handleToggleRightSidebar), and the restored value gets written
+  // here when auto-compact ends.
   React.useEffect(() => {
+    if (isAutoCompact) return
     storage.set(storage.KEYS.rightSidebarVisible, rightSidebarVisible)
-  }, [rightSidebarVisible])
+  }, [rightSidebarVisible, isAutoCompact])
 
   // Auto-compact: force-hide the right sidebar in narrow windows, restore
   // the user's preference when the window grows back.
