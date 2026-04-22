@@ -11,6 +11,14 @@ type PiModel<T = any> = ReturnType<PiModelRegistry['find']>;
  * 2. Exact provider+model lookup via `piAuthProvider`
  * 3. Full `getAll()` scan by id/name
  * 4. Common provider fallback list (includes 'custom-endpoint')
+ *
+ * Note on Minimax: MiniMax-M2.7 and M2.7-highspeed are genuinely text-only
+ * (the Pi SDK catalog's `input: ["text"]` is correct). We previously patched
+ * models here to declare image support so inline image blocks would bypass
+ * pi-ai's anthropic.js filter, but Minimax's backend only uses this to do an
+ * OSS-upload/URL dance — the underlying model has no vision weights and
+ * hallucinates descriptions. For vision on Minimax-family models, use
+ * MiniMax-M2.5 (served via HuggingFace provider), not M2.7.
  */
 export function resolvePiModel(
   modelRegistry: PiModelRegistry,

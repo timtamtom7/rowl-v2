@@ -81,6 +81,29 @@ describe('resolvePiModel', () => {
       expect(result).toBeDefined();
       expect(result!.id).toBe('M2.5-highspeed');
     });
+
+    it('leaves minimax input modality untouched (M2.7 is text-only)', () => {
+      // Regression guard: we used to patch Minimax models to declare image
+      // support, but the underlying model has no vision weights and
+      // hallucinates descriptions. The catalog's `input: ["text"]` is correct.
+      const registry = createMockRegistry({
+        minimax: [{ id: 'MiniMax-M2.7', name: 'MiniMax-M2.7', provider: 'minimax', input: ['text'] }],
+      });
+
+      const result = resolvePiModel(registry, 'MiniMax-M2.7', 'minimax');
+      expect(result).toBeDefined();
+      expect((result as any).input).toEqual(['text']);
+    });
+
+    it('preserves image input on providers that already support it', () => {
+      const registry = createMockRegistry({
+        anthropic: [{ id: 'claude-sonnet-4-6', name: 'Claude Sonnet', provider: 'anthropic', input: ['text', 'image'] }],
+      });
+
+      const result = resolvePiModel(registry, 'claude-sonnet-4-6', 'anthropic');
+      expect(result).toBeDefined();
+      expect((result as any).input).toEqual(['text', 'image']);
+    });
   });
 
   describe('pi/ prefix stripping', () => {
