@@ -126,7 +126,12 @@ export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) 
           <button
             type="button"
             className="underline font-medium"
-            onClick={() => { void runMigration() }}
+            onClick={() => {
+              void (async () => {
+                const result = await runMigration()
+                console.info(`[issues] Migrated ${result.migrated}, failed ${result.failed}`)
+              })()
+            }}
           >
             {t("issues.migrateNow", "Migrate")}
           </button>
