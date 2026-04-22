@@ -607,11 +607,13 @@ function AppShellContent({
     })
   }, [])
 
-  const [isResizing, setIsResizing] = React.useState<'sidebar' | 'session-list' | null>(null)
+  const [isResizing, setIsResizing] = React.useState<'sidebar' | 'session-list' | 'right-sidebar' | null>(null)
   const [sidebarHandleY, setSidebarHandleY] = React.useState<number | null>(null)
   const [sessionListHandleY, setSessionListHandleY] = React.useState<number | null>(null)
   const resizeHandleRef = React.useRef<HTMLDivElement>(null)
   const sessionListHandleRef = React.useRef<HTMLDivElement>(null)
+  const rightSidebarHandleRef = React.useRef<HTMLDivElement | null>(null)
+  const [rightSidebarHandleY, setRightSidebarHandleY] = React.useState<number | null>(null)
   const [session, setSession] = useSession()
   const { resolvedMode, isDark, setMode } = useTheme()
   const { canGoBack, canGoForward, goBack, goForward, navigateToSource, navigateToSession } = useNavigation()
@@ -1334,6 +1336,16 @@ function AppShellContent({
           const rect = sessionListHandleRef.current.getBoundingClientRect()
           setSessionListHandleY(e.clientY - rect.top)
         }
+      } else if (isResizing === 'right-sidebar') {
+        // Resize from the left edge of the right sidebar:
+        // distance from the pointer to the right edge of the viewport.
+        const proposed = window.innerWidth - e.clientX
+        const newWidth = clampRightSidebarWidth(proposed)
+        setRightSidebarWidth(newWidth)
+        if (rightSidebarHandleRef.current) {
+          const rect = rightSidebarHandleRef.current.getBoundingClientRect()
+          setRightSidebarHandleY(e.clientY - rect.top)
+        }
       }
     }
 
@@ -1344,6 +1356,9 @@ function AppShellContent({
       } else if (isResizing === 'session-list') {
         storage.set(storage.KEYS.sessionListWidth, sessionListWidth)
         setSessionListHandleY(null)
+      } else if (isResizing === 'right-sidebar') {
+        storage.set(storage.KEYS.rightSidebarWidth, rightSidebarWidth)
+        setRightSidebarHandleY(null)
       }
       setIsResizing(null)
     }
@@ -1359,6 +1374,7 @@ function AppShellContent({
     isResizing,
     sidebarWidth,
     sessionListWidth,
+    rightSidebarWidth,
     isSidebarVisible,
   ])
 
@@ -3513,6 +3529,44 @@ function AppShellContent({
             className="h-full"
             style={{
               ...getResizeGradientStyle(sessionListHandleY, sessionListHandleRef.current?.clientHeight ?? null),
+              width: PANEL_SASH_LINE_WIDTH,
+            }}
+          />
+        </div>
+        )}
+
+        {/* Right Sidebar Resize Handle — mirrors sidebar handle, mounts on the sidebar's left edge */}
+        {rightSidebarVisible && (
+        <div
+          ref={rightSidebarHandleRef}
+          onMouseDown={(e) => { e.preventDefault(); setIsResizing('right-sidebar') }}
+          onMouseMove={(e) => {
+            if (rightSidebarHandleRef.current) {
+              const rect = rightSidebarHandleRef.current.getBoundingClientRect()
+              setRightSidebarHandleY(e.clientY - rect.top)
+            }
+          }}
+          onMouseLeave={() => { if (isResizing !== 'right-sidebar') setRightSidebarHandleY(null) }}
+          className="absolute cursor-col-resize z-panel flex justify-center"
+          style={{
+            width: PANEL_SASH_HIT_WIDTH,
+            top: PANEL_STACK_VERTICAL_OVERFLOW,
+            bottom: PANEL_STACK_VERTICAL_OVERFLOW,
+            // Handle sits on the sidebar's LEFT edge.
+            // right = sidebarWidth - half_sash positions the hit zone's center exactly on the edge.
+            right: rightSidebarWidth - PANEL_SASH_HALF_HIT_WIDTH,
+            transition: isResizing === 'right-sidebar' ? undefined : 'right 0.15s ease-out',
+          }}
+          role="separator"
+          aria-orientation="vertical"
+          aria-valuenow={rightSidebarWidth}
+          aria-valuemin={280}
+          aria-valuemax={600}
+        >
+          <div
+            className="h-full"
+            style={{
+              ...getResizeGradientStyle(rightSidebarHandleY, rightSidebarHandleRef.current?.clientHeight ?? null),
               width: PANEL_SASH_LINE_WIDTH,
             }}
           />
