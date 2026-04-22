@@ -104,8 +104,16 @@ export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) 
     void updateIssueStatus(issueId, newStatus)
   }
 
-  const handleConvertToSession = (issue: Issue) => {
+  const handleStartSession = (issue: Issue) => {
     onCreateSession(issue.title)
+  }
+
+  const handleOpenSession = (sessionId: string) => {
+    console.warn("[issues] onOpenSession not wired yet", sessionId)
+  }
+
+  const handleOpenPlan = (path: string) => {
+    console.warn("[issues] onOpenPlan not wired yet", path)
   }
 
   const handleDelete = (issueId: string) => {
@@ -295,7 +303,7 @@ export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) 
                 issue={issue}
                 onSelect={() => setSelectedIssue(issue)}
                 onStatusCycle={() => handleStatusChange(issue.id, getNextStatus(issue.status))}
-                onConvertToSession={() => handleConvertToSession(issue)}
+                onStartSession={() => handleStartSession(issue)}
               />
             ))}
           </ul>
@@ -307,7 +315,7 @@ export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) 
                 issue={issue}
                 onSelect={() => setSelectedIssue(issue)}
                 onStatusChange={(status) => handleStatusChange(issue.id, status)}
-                onConvertToSession={() => handleConvertToSession(issue)}
+                onStartSession={() => handleStartSession(issue)}
               />
             ))}
           </div>
@@ -315,14 +323,17 @@ export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) 
       </div>
 
       {/* Detail modal */}
-      {selectedIssue && (
+      {selectedIssue && workspaceId && (
         <IssueDetailModal
           issue={selectedIssue}
+          workspaceId={workspaceId}
           onClose={() => setSelectedIssue(null)}
           onUpdate={updateIssue}
           onDelete={() => handleDelete(selectedIssue.id)}
-          onConvertToSession={() => handleConvertToSession(selectedIssue)}
+          onStartSession={(issue) => { handleStartSession(issue); setSelectedIssue(null) }}
           onStatusChange={(status) => handleStatusChange(selectedIssue.id, status)}
+          onOpenSession={handleOpenSession}
+          onOpenPlan={handleOpenPlan}
         />
       )}
     </div>
@@ -335,10 +346,10 @@ interface IssueRowProps {
   issue: Issue
   onSelect: () => void
   onStatusCycle: () => void
-  onConvertToSession: () => void
+  onStartSession: () => void
 }
 
-function IssueRow({ issue, onSelect, onStatusCycle, onConvertToSession }: IssueRowProps) {
+function IssueRow({ issue, onSelect, onStatusCycle, onStartSession }: IssueRowProps) {
   const { t } = useTranslation()
   const statusInfo = ISSUE_STATUS_INFO[issue.status]
   const priorityColor = PRIORITY_DOT[issue.priority] || PRIORITY_DOT.medium
@@ -406,7 +417,7 @@ function IssueRow({ issue, onSelect, onStatusCycle, onConvertToSession }: IssueR
         type="button"
         onClick={(e) => {
           e.stopPropagation()
-          onConvertToSession()
+          onStartSession()
         }}
         className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 text-[11px] font-medium text-accent hover:bg-accent/10 px-2 py-1 rounded transition-all"
         title={t("issues.startSession", "Start a session with this issue")}

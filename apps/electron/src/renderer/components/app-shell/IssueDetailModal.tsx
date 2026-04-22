@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Circle, Clock, CheckCircle, Trash2, PlayCircle } from "lucide-react"
 import {
@@ -10,25 +10,22 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import type { Issue, IssueStatus, IssuePriority } from "@craft-agent/shared/issues"
-import { ISSUE_STATUS_INFO } from "@craft-agent/shared/issues"
 import { cn } from "@/lib/utils"
-
-type IssueUpdate = {
-  title?: string
-  description?: string
-  status?: IssueStatus
-  priority?: IssuePriority
-}
 
 interface IssueDetailModalProps {
   issue: Issue
+  workspaceId: string
   onClose: () => void
-  onUpdate: (id: string, updates: IssueUpdate) => void
+  onUpdate: (
+    id: string,
+    updates: Partial<Pick<Issue, "title" | "description" | "status" | "priority" | "linkedSessionIds" | "linkedPlanPaths" | "attachments">>
+  ) => Promise<Issue | null>
   onDelete: () => void
-  onConvertToSession: () => void
+  onStartSession: (issue: Issue) => void
   onStatusChange: (status: IssueStatus) => void
+  onOpenSession: (sessionId: string) => void
+  onOpenPlan: (workspaceRelativePath: string) => void
 }
 
 const STATUS_OPTIONS: { value: IssueStatus; label: string; icon: React.ReactNode }[] = [
@@ -46,11 +43,14 @@ const PRIORITY_OPTIONS: { value: IssuePriority; label: string; color: string }[]
 
 export function IssueDetailModal({
   issue,
+  workspaceId,
   onClose,
   onUpdate,
   onDelete,
-  onConvertToSession,
+  onStartSession,
   onStatusChange,
+  onOpenSession,
+  onOpenPlan,
 }: IssueDetailModalProps) {
   const { t } = useTranslation()
   const [title, setTitle] = useState(issue.title)
@@ -58,17 +58,57 @@ export function IssueDetailModal({
   const [priority, setPriority] = useState<IssuePriority>(issue.priority)
   const [status, setStatus] = useState<IssueStatus>(issue.status)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [attachments, setAttachments] = useState<string[]>(issue.attachments ?? [])
+  const [inlineError, setInlineError] = useState<string | null>(null)
 
-  const handleSave = () => {
-    if (title.trim() !== issue.title || description !== (issue.description || "")) {
-      onUpdate(issue.id, {
-        title: title.trim() || issue.title,
-        description: description.trim() || undefined,
-      })
+  async function insertAttachment(file: File) {
+    if (file.size > 10 * 1024 * 1024) {
+      setInlineError("Image exceeds 10 MB limit")
+      return
     }
-    if (priority !== issue.priority) {
-      onUpdate(issue.id, { priority })
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    const ext = (file.name.split(".").pop() || "png").toLowerCase()
+    try {
+      const { path } = await window.electronAPI.issues.writeAttachment(workspaceId, issue.id, ext, bytes)
+      const filename = path.split("/").pop()
+      const ref = `![attachment](./${issue.id}/attachments/${filename})`
+      const textarea = textareaRef.current
+      if (!textarea) return
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const next = description.slice(0, start) + ref + description.slice(end)
+      setDescription(next)
+      setAttachments((prev) => [...prev, path])
+    } catch (err) {
+      setInlineError(`Couldn't save image: ${(err as Error).message}`)
     }
+  }
+
+  async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = Array.from(e.clipboardData.items)
+    const imageItem = items.find((it) => it.type.startsWith("image/"))
+    if (!imageItem) return
+    e.preventDefault()
+    const file = imageItem.getAsFile()
+    if (!file) return
+    await insertAttachment(file)
+  }
+
+  async function handleDrop(e: React.DragEvent<HTMLTextAreaElement>) {
+    e.preventDefault()
+    const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith("image/"))
+    if (!file) return
+    await insertAttachment(file)
+  }
+
+  const handleSave = async () => {
+    await onUpdate(issue.id, {
+      title: title.trim() || issue.title,
+      description: description.trim() || undefined,
+      priority,
+      attachments: attachments.length > 0 ? attachments : undefined,
+    })
     if (status !== issue.status) {
       onStatusChange(status)
     }
@@ -106,12 +146,14 @@ export function IssueDetailModal({
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
               {t("issues.description", "Description")}
             </label>
-            <Textarea
+            <textarea
+              ref={textareaRef}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={t("issues.descriptionPlaceholder", "Add a description...")}
-              rows={4}
-              className="resize-none"
+              onPaste={handlePaste}
+              onDrop={handleDrop}
+              className="w-full min-h-[160px] font-mono text-sm p-2 rounded border bg-background"
+              placeholder="Markdown supported. Paste or drop images to attach."
             />
           </div>
 
@@ -163,6 +205,46 @@ export function IssueDetailModal({
             </div>
           </div>
 
+          {/* Linked sessions */}
+          {issue.linkedSessionIds.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground">Linked sessions</div>
+              <ul className="text-sm space-y-1">
+                {issue.linkedSessionIds.map((sid) => (
+                  <li key={sid}>
+                    <button
+                      type="button"
+                      className="underline text-left hover:text-primary"
+                      onClick={() => onOpenSession(sid)}
+                    >
+                      {sid}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Linked plans */}
+          {issue.linkedPlanPaths.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground">Linked plans</div>
+              <ul className="text-sm space-y-1">
+                {issue.linkedPlanPaths.map((p) => (
+                  <li key={p}>
+                    <button
+                      type="button"
+                      className="underline text-left hover:text-primary"
+                      onClick={() => onOpenPlan(p)}
+                    >
+                      {p.split("/").pop()}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Metadata */}
           <div className="text-xs text-muted-foreground pt-2 border-t border-border">
             <p>
@@ -172,6 +254,10 @@ export function IssueDetailModal({
               Updated: {new Date(issue.updatedAt).toLocaleDateString()}
             </p>
           </div>
+
+          {inlineError && (
+            <div className="text-xs text-destructive">{inlineError}</div>
+          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -208,9 +294,9 @@ export function IssueDetailModal({
               </Button>
 
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
-                onClick={onConvertToSession}
+                onClick={() => onStartSession(issue)}
               >
                 <PlayCircle className="h-3 w-3 mr-1" />
                 {t("issues.startSession", "Start Session")}
