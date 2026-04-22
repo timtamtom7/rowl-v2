@@ -2551,6 +2551,8 @@ function AppShellContent({
           canGoBack={canGoBack}
           canGoForward={canGoForward}
           onToggleSidebar={handleToggleSidebar}
+          onToggleRightSidebar={handleToggleRightSidebar}
+          isRightSidebarVisible={rightSidebarVisible}
           onToggleFocusMode={() => setIsSidebarAndNavigatorHidden(prev => !prev)}
           onAddSessionPanel={() => handleNewChat(true)}
           onAddBrowserPanel={() => { void handleNewBrowserWindow() }}
@@ -3669,9 +3671,11 @@ function AppShellContent({
             width: PANEL_SASH_HIT_WIDTH,
             top: PANEL_STACK_VERTICAL_OVERFLOW,
             bottom: PANEL_STACK_VERTICAL_OVERFLOW,
-            // Handle sits on the sidebar's LEFT edge.
-            // right = sidebarWidth - half_sash positions the hit zone's center exactly on the edge.
-            right: rightSidebarWidth - PANEL_SASH_HALF_HIT_WIDTH,
+            // Handle sits in the GAP to the LEFT of the sidebar — mirroring the
+            // sidebar/session-list handles which center in their respective gaps.
+            // right = sidebarWidth + PANEL_GAP/2 - half_sash positions the hit
+            // zone's center in the middle of that gap.
+            right: rightSidebarWidth + (PANEL_GAP / 2) - PANEL_SASH_HALF_HIT_WIDTH,
             transition: isResizing === 'right-sidebar' ? undefined : 'right 0.15s ease-out',
           }}
           role="separator"

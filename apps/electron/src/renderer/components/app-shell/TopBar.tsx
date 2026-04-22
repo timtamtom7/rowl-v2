@@ -12,6 +12,7 @@ import * as Icons from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@craft-agent/ui"
 import { CraftAgentsSymbol } from "../icons/CraftAgentsSymbol"
 import { PanelLeftRounded } from "../icons/PanelLeftRounded"
+import { PanelRightRounded } from "../icons/PanelRightRounded"
 import { TopBarButton } from "../ui/TopBarButton"
 import { cn } from "@/lib/utils"
 import { isMac } from "@/lib/platform"
@@ -160,6 +161,8 @@ interface TopBarProps {
   canGoBack: boolean
   canGoForward: boolean
   onToggleSidebar: () => void
+  onToggleRightSidebar: () => void
+  isRightSidebarVisible: boolean
   onToggleFocusMode: () => void
   onAddSessionPanel: () => void
   onAddBrowserPanel: () => void
@@ -194,6 +197,8 @@ export function TopBar({
   canGoBack,
   canGoForward,
   onToggleSidebar,
+  onToggleRightSidebar,
+  isRightSidebarVisible,
   onToggleFocusMode,
   onAddSessionPanel,
   onAddBrowserPanel,
@@ -498,6 +503,23 @@ export function TopBar({
             </StyledDropdownMenuItem>
           </StyledDropdownMenuContent>
         </DropdownMenu>
+
+        {/* Right sidebar toggle — mirror of the left-sidebar toggle on the TopBar's left edge. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <TopBarButton
+              onClick={onToggleRightSidebar}
+              aria-label={isRightSidebarVisible ? "Close right sidebar" : "Open right sidebar"}
+              aria-expanded={isRightSidebarVisible}
+              aria-controls={isRightSidebarVisible ? "right-sidebar-region" : undefined}
+            >
+              <PanelRightRounded className="h-[18px] w-[18px] text-foreground/70" />
+            </TopBarButton>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {isRightSidebarVisible ? "Close right sidebar" : "Open right sidebar"}
+          </TooltipContent>
+        </Tooltip>
       </div>
       )}
       </div>

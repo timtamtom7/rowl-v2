@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFocusZone } from '@/hooks/keyboard';
+import { RADIUS_EDGE, RADIUS_INNER } from './panel-constants';
 
 interface RightSidebarProps {
   /** Current width in pixels. Caller is responsible for clamping to bounds. */
@@ -20,6 +20,10 @@ interface RightSidebarProps {
  * Registers itself as the `'right-sidebar'` focus zone on mount so Tab
  * cycling and `Cmd+4` (`nav.focusRightSidebar`) can land here. Unregisters
  * automatically on unmount (when AppShell hides the sidebar).
+ *
+ * Corners mirror PanelSlot's radius rules: interior corners (facing the
+ * panel gap) use RADIUS_INNER; exterior corners (touching the window's
+ * right edge) use RADIUS_EDGE.
  */
 export function RightSidebar({ width, children }: RightSidebarProps) {
   const { zoneRef, isFocused } = useFocusZone({ zoneId: 'right-sidebar' });
@@ -30,8 +34,17 @@ export function RightSidebar({ width, children }: RightSidebarProps) {
       role="region"
       aria-label="Right sidebar"
       tabIndex={isFocused ? 0 : -1}
-      className="h-full relative bg-background shadow-middle overflow-hidden outline-none"
-      style={{ width }}
+      className={cn(
+        'h-full relative bg-background shadow-middle overflow-hidden',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+      )}
+      style={{
+        width,
+        borderTopLeftRadius: RADIUS_INNER,
+        borderBottomLeftRadius: RADIUS_INNER,
+        borderTopRightRadius: RADIUS_EDGE,
+        borderBottomRightRadius: RADIUS_EDGE,
+      }}
     >
       <div
         data-right-sidebar-inner
@@ -48,13 +61,12 @@ function RightSidebarEmptyState() {
   return (
     <div
       className={cn(
-        'flex flex-col items-center text-center gap-2',
-        'px-4',
+        'flex flex-col items-center text-center',
+        'px-6',
       )}
       style={{ marginTop: '40%' }}
     >
-      <Sparkles className="h-6 w-6 text-muted-foreground/50" aria-hidden="true" />
-      <p className="text-sm text-muted-foreground max-w-[220px]">
+      <p className="text-sm text-muted-foreground/70 max-w-[240px] leading-relaxed">
         Memory, context, and session activity will appear here.
       </p>
     </div>

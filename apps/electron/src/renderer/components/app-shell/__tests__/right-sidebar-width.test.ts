@@ -26,7 +26,7 @@ describe('clampRightSidebarWidth', () => {
 
   it('exposes sensible bounds', () => {
     expect(RIGHT_SIDEBAR_MIN_WIDTH).toBe(280);
-    expect(RIGHT_SIDEBAR_MAX_WIDTH).toBe(600);
+    expect(RIGHT_SIDEBAR_MAX_WIDTH).toBe(900);
     expect(RIGHT_SIDEBAR_DEFAULT_WIDTH).toBe(360);
     expect(RIGHT_SIDEBAR_MIN_WIDTH).toBeLessThan(RIGHT_SIDEBAR_DEFAULT_WIDTH);
     expect(RIGHT_SIDEBAR_DEFAULT_WIDTH).toBeLessThan(RIGHT_SIDEBAR_MAX_WIDTH);
