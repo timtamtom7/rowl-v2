@@ -82,6 +82,8 @@ import { RightSidebar } from './RightSidebar'
 import {
   clampRightSidebarWidth,
   RIGHT_SIDEBAR_DEFAULT_WIDTH,
+  RIGHT_SIDEBAR_MIN_WIDTH,
+  RIGHT_SIDEBAR_MAX_WIDTH,
 } from './right-sidebar-width'
 import { useSession } from "@/hooks/useSession"
 import {
@@ -3560,8 +3562,8 @@ function AppShellContent({
           role="separator"
           aria-orientation="vertical"
           aria-valuenow={rightSidebarWidth}
-          aria-valuemin={280}
-          aria-valuemax={600}
+          aria-valuemin={RIGHT_SIDEBAR_MIN_WIDTH}
+          aria-valuemax={RIGHT_SIDEBAR_MAX_WIDTH}
         >
           <div
             className="h-full"
