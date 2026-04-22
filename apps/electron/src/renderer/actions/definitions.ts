@@ -82,6 +82,12 @@ export const actions = {
     defaultHotkey: 'mod+3',
     category: 'Navigation',
   },
+  'nav.focusRightSidebar': {
+    id: 'nav.focusRightSidebar',
+    label: 'Focus Right Sidebar',
+    defaultHotkey: 'mod+4',
+    category: 'Navigation',
+  },
   'nav.nextZone': {
     id: 'nav.nextZone',
     label: 'Focus Next Zone',
@@ -134,6 +140,13 @@ export const actions = {
     label: 'Toggle Focus Mode',
     description: 'Hide both sidebars for distraction-free work',
     defaultHotkey: 'mod+.',
+    category: 'View',
+  },
+  'view.toggleRightSidebar': {
+    id: 'view.toggleRightSidebar',
+    label: 'Toggle Right Sidebar',
+    description: 'Show or hide the right sidebar',
+    defaultHotkey: 'mod+shift+.',
     category: 'View',
   },
 

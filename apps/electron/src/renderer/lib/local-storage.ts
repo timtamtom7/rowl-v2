@@ -23,6 +23,10 @@ export const KEYS = {
   chatGroupingMode: 'chat-grouping-mode', // How to group chats: 'date' | 'status'
   collapsedSessionGroups: 'collapsed-session-groups', // Collapsed group keys in session list
 
+  // Right sidebar (chrome-only; content will be workspace-scoped later)
+  rightSidebarVisible: 'right-sidebar-visible',
+  rightSidebarWidth: 'right-sidebar-width',
+
   // Focus mode
   focusModeEnabled: 'focus-mode-enabled',
 
