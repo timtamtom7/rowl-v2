@@ -78,6 +78,11 @@ import { MainContentPanel } from "./MainContentPanel"
 import { PanelStackContainer } from "./PanelStackContainer"
 import type { ChatDisplayHandle } from "./ChatDisplay"
 import { LeftSidebar } from "./LeftSidebar"
+import { RightSidebar } from './RightSidebar'
+import {
+  clampRightSidebarWidth,
+  RIGHT_SIDEBAR_DEFAULT_WIDTH,
+} from './right-sidebar-width'
 import { useSession } from "@/hooks/useSession"
 import {
   useAllSessionsDropdownModePersistence,
@@ -560,6 +565,16 @@ function AppShellContent({
   // Session list width in pixels (min 240, max 480)
   const [sessionListWidth, setSessionListWidth] = React.useState(() => {
     return storage.get(storage.KEYS.sessionListWidth, 300)
+  })
+
+  const [rightSidebarWidth, setRightSidebarWidth] = React.useState(() => {
+    return clampRightSidebarWidth(
+      storage.get(storage.KEYS.rightSidebarWidth, RIGHT_SIDEBAR_DEFAULT_WIDTH)
+    )
+  })
+
+  const [rightSidebarVisible, setRightSidebarVisible] = React.useState(() => {
+    return storage.get(storage.KEYS.rightSidebarVisible, false)
   })
 
   // Hides both sidebar and navigator (CMD+. toggle)
@@ -1710,6 +1725,12 @@ function AppShellContent({
   React.useEffect(() => {
     storage.set(storage.KEYS.sidebarVisible, isSidebarVisible)
   }, [isSidebarVisible])
+
+  // Persist right sidebar visibility whenever it changes via user action.
+  // (Auto-compact uses a separate transient ref and must NOT go through this path.)
+  React.useEffect(() => {
+    storage.set(storage.KEYS.rightSidebarVisible, rightSidebarVisible)
+  }, [rightSidebarVisible])
 
   // Persist focus mode state to localStorage
   React.useEffect(() => {
