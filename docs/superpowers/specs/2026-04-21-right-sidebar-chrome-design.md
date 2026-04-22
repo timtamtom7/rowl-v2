@@ -212,7 +212,8 @@ These are **out of scope** and tracked separately:
 - Storage keys file (wherever `storage.KEYS` is defined) — add
   `rightSidebarWidth`, `rightSidebarVisible`
 - Action registry — add `app.toggleRightSidebar`
-- Focus zone registry — add `'right-sidebar'` zone and arrow-key transitions
+- Focus zone registry — add `'right-sidebar'` zone (appended to `ZONE_ORDER`
+  for Tab cycling; `Cmd+4` via `nav.focusRightSidebar`)
 
 ---
 
