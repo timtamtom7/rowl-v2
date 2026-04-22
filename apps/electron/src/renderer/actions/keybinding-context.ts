@@ -26,6 +26,8 @@ export interface KeybindingContext {
   navigatorFocus: boolean
   /** Sidebar focus zone is active */
   sidebarFocus: boolean
+  /** Right sidebar focus zone is active */
+  rightSidebarFocus: boolean
   /** A modal dialog or dropdown/popover is open */
   menuOpen: boolean
 }
@@ -99,6 +101,7 @@ export function getKeybindingContext(e: KeyboardEvent): KeybindingContext {
     chatFocus: _currentZone === 'chat',
     navigatorFocus: _currentZone === 'navigator',
     sidebarFocus: _currentZone === 'sidebar',
+    rightSidebarFocus: _currentZone === 'right-sidebar',
     menuOpen: hasOpenOverlay(),
   }
 }

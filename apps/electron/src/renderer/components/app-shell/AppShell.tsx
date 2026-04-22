@@ -32,6 +32,8 @@ import {
   Bot,
   Info,
   Lightbulb,
+  PanelRightOpen,
+  PanelRightClose,
 } from "lucide-react"
 // SessionStatusIcons no longer used - icons come from dynamic sessionStatuses
 import { SourceAvatar } from "@/components/ui/source-avatar"
@@ -1163,6 +1165,7 @@ function AppShellContent({
   useAction('nav.focusSidebar', () => focusZone('sidebar', { intent: 'keyboard' }))
   useAction('nav.focusNavigator', () => focusZone('navigator', { intent: 'keyboard' }))
   useAction('nav.focusChat', () => focusZone('chat', { intent: 'keyboard' }))
+  useAction('nav.focusRightSidebar', () => focusZone('right-sidebar', { intent: 'keyboard' }))
 
   // Tab navigation between zones
   useAction('nav.nextZone', () => {
@@ -1203,6 +1206,30 @@ function AppShellContent({
 
   // Sidebar toggle (CMD+B)
   useAction('view.toggleSidebar', handleToggleSidebar)
+
+  // Right sidebar toggle (CMD+SHIFT+.)
+  const handleToggleRightSidebar = React.useCallback(() => {
+    setRightSidebarVisible(prev => !prev)
+  }, [])
+
+  useAction('view.toggleRightSidebar', handleToggleRightSidebar)
+
+  // Toggle button node — injected into PanelHeader via AppShellContext
+  const rightSidebarToggleButton = React.useMemo(() => (
+    <button
+      type="button"
+      onClick={handleToggleRightSidebar}
+      className="p-1.5 rounded-md hover:bg-foreground/[0.05] transition-colors text-muted-foreground hover:text-foreground"
+      aria-expanded={rightSidebarVisible}
+      aria-controls="right-sidebar-region"
+      aria-label={rightSidebarVisible ? 'Close right sidebar' : 'Open right sidebar'}
+      title={`${rightSidebarVisible ? 'Close' : 'Open'} right sidebar (⌘⇧.)`}
+    >
+      {rightSidebarVisible
+        ? <PanelRightClose className="h-4 w-4" />
+        : <PanelRightOpen className="h-4 w-4" />}
+    </button>
+  ), [rightSidebarVisible, handleToggleRightSidebar])
 
   // Focus mode toggle (CMD+.) - hides both sidebars
   useAction('view.toggleFocusMode', () => setIsSidebarAndNavigatorHidden(v => !v))
@@ -1717,7 +1744,7 @@ function AppShellContent({
     enabledModes,
     sessionStatuses: effectiveSessionStatuses,
     onSessionSourcesChange: handleSessionSourcesChange,
-    rightSidebarButton: null,
+    rightSidebarButton: rightSidebarToggleButton,
     isCompactMode: isAutoCompact,
     // Search state for ChatDisplay highlighting
     sessionListSearchQuery: searchActive ? searchQuery : undefined,
@@ -1731,7 +1758,7 @@ function AppShellContent({
     automationTestResults,
     getAutomationHistory,
     onReplayAutomation: handleReplayAutomation,
-  }), [contextValue, handleDeleteSession, sources, skills, activeSessionWorkingDirectory, displayLabelConfigs, handleSessionLabelsChange, enabledModes, effectiveSessionStatuses, handleSessionSourcesChange, isAutoCompact, searchActive, searchQuery, handleChatMatchInfoChange, handleTestAutomation, handleToggleAutomation, handleDuplicateAutomation, handleDeleteAutomation, automationTestResults, getAutomationHistory, handleReplayAutomation])
+  }), [contextValue, handleDeleteSession, sources, skills, activeSessionWorkingDirectory, displayLabelConfigs, handleSessionLabelsChange, enabledModes, effectiveSessionStatuses, handleSessionSourcesChange, rightSidebarToggleButton, isAutoCompact, searchActive, searchQuery, handleChatMatchInfoChange, handleTestAutomation, handleToggleAutomation, handleDuplicateAutomation, handleDeleteAutomation, automationTestResults, getAutomationHistory, handleReplayAutomation])
 
   // Persist expanded folders to localStorage (workspace-scoped)
   React.useEffect(() => {
