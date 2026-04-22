@@ -81,6 +81,7 @@ import { PanelStackContainer } from "./PanelStackContainer"
 import type { ChatDisplayHandle } from "./ChatDisplay"
 import { LeftSidebar } from "./LeftSidebar"
 import { RightSidebar } from './RightSidebar'
+import { PlansPanel } from './PlansPanel'
 import {
   clampRightSidebarWidth,
   RIGHT_SIDEBAR_DEFAULT_WIDTH,
@@ -3607,7 +3608,15 @@ function AppShellContent({
           className="h-full relative shrink-0"
           style={{ overflow: 'hidden' }}
         >
-          <RightSidebar width={rightSidebarWidth} visible={rightSidebarVisible} />
+          <RightSidebar width={rightSidebarWidth} visible={rightSidebarVisible}>
+            {activeWorkspaceId && (
+              <PlansPanel
+                workspaceId={activeWorkspaceId}
+                onOpenSession={navigateToSessionInPanel}
+                onOpenIssue={(issueId) => navigate(routes.view.issues(issueId))}
+              />
+            )}
+          </RightSidebar>
         </motion.div>
 
         {/* Sidebar Resize Handle (absolute, hidden in focused mode and full-screen panels) */}

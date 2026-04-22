@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Plus,
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { IssueCard } from "./IssueCard"
 import { IssueDetailModal } from "./IssueDetailModal"
+import { PlanViewerModal } from "./PlanViewerModal"
 import { useIssues } from "@/hooks/useIssues"
 import { useStartSessionFromIssue } from "@/hooks/useStartSessionFromIssue"
 import type { Issue, IssueStatus } from "@craft-agent/shared/issues"
@@ -67,6 +68,7 @@ export function IssuesPanel({ onOpenSession, workspaceId }: IssuesPanelProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [newIssueTitle, setNewIssueTitle] = useState("")
   const [showCreate, setShowCreate] = useState(false)
+  const [planViewerPath, setPlanViewerPath] = useState<string | null>(null)
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: issues.length, open: 0, backlog: 0, todo: 0, in_progress: 0, done: 0 }
@@ -123,8 +125,14 @@ export function IssuesPanel({ onOpenSession, workspaceId }: IssuesPanelProps) {
     }
   }
 
+  const openIssueById = useCallback((id: string) => {
+    const found = issues.find((i) => i.id === id)
+    if (found) setSelectedIssue(found)
+    else console.warn("[plans] onOpenIssue: issue not found", id)
+  }, [issues])
+
   const handleOpenPlan = (path: string) => {
-    console.warn("[issues] onOpenPlan not wired yet", path)
+    setPlanViewerPath(path)
   }
 
   const handleDelete = (issueId: string) => {
@@ -345,6 +353,15 @@ export function IssuesPanel({ onOpenSession, workspaceId }: IssuesPanelProps) {
           onStatusChange={(status) => handleStatusChange(selectedIssue.id, status)}
           onOpenSession={onOpenSession}
           onOpenPlan={handleOpenPlan}
+        />
+      )}
+      {planViewerPath && workspaceId && (
+        <PlanViewerModal
+          workspaceId={workspaceId}
+          workspaceRelativePath={planViewerPath}
+          onClose={() => setPlanViewerPath(null)}
+          onOpenSession={onOpenSession}
+          onOpenIssue={openIssueById}
         />
       )}
     </div>
