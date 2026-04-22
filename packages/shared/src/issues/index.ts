@@ -10,3 +10,4 @@ export * from './slug.ts';
 export * from './timestamp.ts';
 export * from './first-turn-context.ts';
 export * from './copy-plan-forward.ts';
+export * from './issues-storage.ts';
