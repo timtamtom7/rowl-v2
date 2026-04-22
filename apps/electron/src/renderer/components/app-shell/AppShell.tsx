@@ -581,6 +581,14 @@ function AppShellContent({
     return storage.get(storage.KEYS.rightSidebarVisible, false)
   })
 
+  // Remembers the user's visibility preference across auto-compact transitions.
+  // A ref (not state) so writing to it doesn't re-render.
+  // Updated by:
+  //   - The isAutoCompact effect when ENTERING auto-compact (snapshot current pref).
+  //   - handleToggleRightSidebar when the user manually toggles DURING
+  //     auto-compact (so "manual toggle wins" on the way out).
+  const rightSidebarPreAutoCompactRef = React.useRef<boolean | null>(null)
+
   // Hides both sidebar and navigator (CMD+. toggle)
   // Seed from either focused window param or persisted preference, then keep it toggleable.
   const [isSidebarAndNavigatorHidden, setIsSidebarAndNavigatorHidden] = React.useState(() => {
@@ -1223,8 +1231,17 @@ function AppShellContent({
 
   // Right sidebar toggle (CMD+SHIFT+.)
   const handleToggleRightSidebar = React.useCallback(() => {
-    setRightSidebarVisible(prev => !prev)
-  }, [])
+    setRightSidebarVisible(prev => {
+      const next = !prev
+      // If the user manually toggles during auto-compact, their choice wins.
+      // Update the remembered pref so the auto-compact-leave restoration
+      // sees the latest user choice, not the stale pre-compact value.
+      if (isAutoCompact) {
+        rightSidebarPreAutoCompactRef.current = next
+      }
+      return next
+    })
+  }, [isAutoCompact])
 
   useAction('view.toggleRightSidebar', handleToggleRightSidebar)
 
@@ -1794,6 +1811,42 @@ function AppShellContent({
   React.useEffect(() => {
     storage.set(storage.KEYS.rightSidebarVisible, rightSidebarVisible)
   }, [rightSidebarVisible])
+
+  // Auto-compact: force-hide the right sidebar in narrow windows, restore
+  // the user's preference when the window grows back.
+  //
+  // Subtle invariants:
+  //   - Entering auto-compact snapshots the current pref into a ref, then
+  //     hides the sidebar (which triggers the persistence effect above and
+  //     writes `false` to localStorage — acceptable because we restore on
+  //     the way out).
+  //   - Leaving auto-compact restores `rightSidebarPreAutoCompactRef.current`
+  //     (which may have been updated by a manual toggle during auto-compact —
+  //     see handleToggleRightSidebar).
+  //   - We intentionally do NOT depend on `rightSidebarVisible` here, because
+  //     we only want to react to auto-compact TRANSITIONS; depending on
+  //     visibility would re-run on every toggle and could overwrite the ref
+  //     or loop.
+  React.useEffect(() => {
+    if (isAutoCompact) {
+      // Entering auto-compact: remember current pref, then hide.
+      if (rightSidebarPreAutoCompactRef.current === null) {
+        rightSidebarPreAutoCompactRef.current = rightSidebarVisible
+      }
+      if (rightSidebarVisible) {
+        setRightSidebarVisible(false)
+      }
+    } else {
+      // Leaving auto-compact: restore the remembered pref (may have been
+      // updated by a user toggle during auto-compact).
+      const remembered = rightSidebarPreAutoCompactRef.current
+      if (remembered !== null) {
+        setRightSidebarVisible(remembered)
+        rightSidebarPreAutoCompactRef.current = null
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAutoCompact])
 
   // Persist focus mode state to localStorage
   React.useEffect(() => {
