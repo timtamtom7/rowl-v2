@@ -32,8 +32,9 @@ export function listIssues(workspaceRoot: string): Issue[] {
       const text = readFileSync(full, 'utf-8');
       const { issue } = parseIssueFile(text);
       issues.push(issue);
-    } catch {
-      // Skip unreadable / malformed files silently; caller sees what it sees.
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(`[issues-storage] Skipped ${entry}: ${(err as Error).message}`);
     }
   }
 
@@ -66,7 +67,9 @@ export function deleteIssue(workspaceRoot: string, id: string): void {
     try {
       rmSync(attachDir, { recursive: true, force: true });
     } catch (err) {
-      // Attachment folder cleanup failure must not block the .md delete.
+      // The .md file is already gone at this point. Attachment-folder cleanup
+      // is best-effort — surface a warning but don't propagate, so the primary
+      // delete stays successful from the caller's perspective.
       // eslint-disable-next-line no-console
       console.warn(`[issues-storage] Failed to remove attachments for ${id}:`, err);
     }
