@@ -101,6 +101,8 @@ export interface Session {
   isArchived?: boolean
   archivedAt?: number
   supportsBranching?: boolean
+  /** Issue this session was kicked off from (issue-to-plan pipeline). */
+  linkedIssueId?: string
 }
 
 export interface CreateSessionOptions {
@@ -179,7 +181,7 @@ export type SessionEvent =
   | { type: 'permission_request'; sessionId: string; request: PermissionRequest }
   | { type: 'credential_request'; sessionId: string; request: CredentialRequest }
   | { type: 'permission_mode_changed'; sessionId: string; permissionMode: PermissionMode; previousPermissionMode?: PermissionMode; transitionDisplay?: string; modeVersion?: number; changedAt?: string; changedBy?: PermissionModeState['changedBy'] }
-  | { type: 'plan_submitted'; sessionId: string; message: Message }
+  | { type: 'plan_submitted'; sessionId: string; message: Message; linkedIssueId?: string }
   | { type: 'sources_changed'; sessionId: string; enabledSourceSlugs: string[] }
   | { type: 'labels_changed'; sessionId: string; labels: string[] }
   | { type: 'connection_changed'; sessionId: string; connectionSlug: string; supportsBranching?: boolean }

@@ -3320,6 +3320,7 @@ export class SessionManager implements ISessionManager {
             type: 'plan_submitted',
             sessionId: managed.id,
             message: planMessage,
+            linkedIssueId: managed.linkedIssueId,
           }, managed.workspace.id)
 
           // Interrupt execution - plan presentation is a stopping point

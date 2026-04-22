@@ -191,6 +191,7 @@ export interface PlanSubmittedEvent {
   type: 'plan_submitted'
   sessionId: string
   message: Message
+  linkedIssueId?: string
 }
 
 /**

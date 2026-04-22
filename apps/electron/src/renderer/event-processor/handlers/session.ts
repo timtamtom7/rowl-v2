@@ -765,7 +765,10 @@ export function handlePlanSubmitted(
 
   return {
     state: {
-      session: appendMessage(session, event.message),
+      session: {
+        ...appendMessage(session, event.message),
+        linkedIssueId: event.linkedIssueId ?? session.linkedIssueId,
+      },
       streaming,
     },
     effects: [],

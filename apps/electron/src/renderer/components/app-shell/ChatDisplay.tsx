@@ -1957,6 +1957,7 @@ export const ChatDisplay = React.forwardRef<ChatDisplayHandle, ChatDisplayProps>
               followUpItems: followUpInputItems,
               onFollowUpClick: handleFollowUpChipClick,
               onFollowUpIndexClick: handleFollowUpIndexClick,
+              linkedIssueId: session.linkedIssueId,
             }}
           />
           </div>

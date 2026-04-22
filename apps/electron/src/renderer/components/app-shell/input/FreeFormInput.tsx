@@ -197,6 +197,8 @@ export interface FreeFormInputProps {
   sessionFolderPath?: string
   /** Session ID for scoping events like approve-plan */
   sessionId?: string
+  /** Issue this session was kicked off from (issue-to-plan pipeline). */
+  linkedIssueId?: string
   /** Current session status of the session (for # menu state selection) */
   currentSessionStatus?: string
   /** Disable send action (for tutorial guidance) */
@@ -270,6 +272,7 @@ export function FreeFormInput({
   onWorkingDirectoryChange,
   sessionFolderPath,
   sessionId,
+  linkedIssueId,
   currentSessionStatus,
   disableSend = false,
   isEmptySession = false,
@@ -609,16 +612,42 @@ export function FreeFormInput({
   // This disables safe mode AND submits the message in one action
   // Only process events for this session (sessionId must match)
   React.useEffect(() => {
-    const handleApprovePlan = (e: CustomEvent<PlanApprovalEventDetail>) => {
+    const handleApprovePlan = async (e: CustomEvent<PlanApprovalEventDetail>) => {
       // Only handle if this event is for our session
       if (e.detail?.sessionId && e.detail.sessionId !== sessionId) {
         return
       }
 
+      const planPath = e.detail?.planPath
+
+      // Copy plan forward to docs/plans/ on accept
+      if (workspaceId && planPath && sessionId) {
+        try {
+          const rel = await window.electronAPI.plans.copyForward(
+            workspaceId,
+            planPath,
+            sessionId,
+            linkedIssueId,
+          )
+          if (linkedIssueId) {
+            const issue = await window.electronAPI.issues.read(workspaceId, linkedIssueId)
+            if (issue) {
+              await window.electronAPI.issues.write(workspaceId, {
+                ...issue,
+                linkedPlanPaths: [...issue.linkedPlanPaths, rel],
+                updatedAt: new Date().toISOString(),
+              })
+            }
+          }
+        } catch (err) {
+          console.error('[plans] copy-forward failed', err)
+        }
+      }
+
       const shouldIncludeDraft = e.detail?.includeDraftInput !== false
       const draftInput = shouldIncludeDraft ? consumeInputDraftSnapshot() : ''
       const text = buildPlanApprovalMessage({
-        planPath: e.detail?.planPath,
+        planPath,
         draftInput,
       })
 
@@ -631,9 +660,9 @@ export function FreeFormInput({
       onSubmit(text, undefined)
     }
 
-    window.addEventListener('craft:approve-plan', handleApprovePlan as EventListener)
-    return () => window.removeEventListener('craft:approve-plan', handleApprovePlan as EventListener)
-  }, [sessionId, permissionMode, onPermissionModeChange, onSubmit, consumeInputDraftSnapshot])
+    window.addEventListener('craft:approve-plan', handleApprovePlan as unknown as EventListener)
+    return () => window.removeEventListener('craft:approve-plan', handleApprovePlan as unknown as EventListener)
+  }, [sessionId, permissionMode, onPermissionModeChange, onSubmit, consumeInputDraftSnapshot, workspaceId, linkedIssueId])
 
   // Listen for craft:approve-plan-with-compact events (Accept & Compact option)
   // This compacts the conversation first, then executes the plan.
@@ -648,6 +677,30 @@ export function FreeFormInput({
       const planPath = e.detail?.planPath
       const shouldIncludeDraft = e.detail?.includeDraftInput !== false
       const draftInputSnapshot = shouldIncludeDraft ? consumeInputDraftSnapshot() : ''
+
+      // Copy plan forward to docs/plans/ on accept
+      if (workspaceId && planPath && sessionId) {
+        try {
+          const rel = await window.electronAPI.plans.copyForward(
+            workspaceId,
+            planPath,
+            sessionId,
+            linkedIssueId,
+          )
+          if (linkedIssueId) {
+            const issue = await window.electronAPI.issues.read(workspaceId, linkedIssueId)
+            if (issue) {
+              await window.electronAPI.issues.write(workspaceId, {
+                ...issue,
+                linkedPlanPaths: [...issue.linkedPlanPaths, rel],
+                updatedAt: new Date().toISOString(),
+              })
+            }
+          }
+        } catch (err) {
+          console.error('[plans] copy-forward failed', err)
+        }
+      }
 
       // Switch to allow-all (Auto) mode if in Explore mode
       if (permissionMode === 'safe') {
@@ -697,7 +750,7 @@ export function FreeFormInput({
 
     window.addEventListener('craft:approve-plan-with-compact', handleApprovePlanWithCompact as unknown as EventListener)
     return () => window.removeEventListener('craft:approve-plan-with-compact', handleApprovePlanWithCompact as unknown as EventListener)
-  }, [sessionId, permissionMode, onPermissionModeChange, onSubmit, consumeInputDraftSnapshot])
+  }, [sessionId, permissionMode, onPermissionModeChange, onSubmit, consumeInputDraftSnapshot, workspaceId, linkedIssueId])
 
   // Reload recovery: Check for pending plan execution on mount.
   // If the page reloaded after compaction completed (awaitingCompaction = false),
