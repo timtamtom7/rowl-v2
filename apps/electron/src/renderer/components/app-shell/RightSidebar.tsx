@@ -6,6 +6,13 @@ import { RADIUS_EDGE, RADIUS_INNER } from './panel-constants';
 interface RightSidebarProps {
   /** Current width in pixels. Caller is responsible for clamping to bounds. */
   width: number;
+  /**
+   * Whether the sidebar is visually visible. AppShell keeps this component
+   * mounted during the open/close animation so width/opacity can animate; we
+   * use this to gate focus-zone registration (no zone when hidden) and to
+   * avoid keeping the inner tree tabbable mid-collapse.
+   */
+  visible: boolean;
   /** Optional content. When omitted, a friendly empty state is shown. */
   children?: ReactNode;
 }
@@ -17,23 +24,26 @@ interface RightSidebarProps {
  * managed by AppShell. This component renders its own inner width and a
  * default empty state when no children are passed.
  *
- * Registers itself as the `'right-sidebar'` focus zone on mount so Tab
- * cycling and `Cmd+4` (`nav.focusRightSidebar`) can land here. Unregisters
- * automatically on unmount (when AppShell hides the sidebar).
+ * Registers itself as the `'right-sidebar'` focus zone only when visible so
+ * Tab cycling and `Cmd+4` (`nav.focusRightSidebar`) skip it while hidden.
+ * The registration is cleaned up automatically when `visible` flips false.
  *
  * Corners mirror PanelSlot's radius rules: interior corners (facing the
  * panel gap) use RADIUS_INNER; exterior corners (touching the window's
  * right edge) use RADIUS_EDGE.
  */
-export function RightSidebar({ width, children }: RightSidebarProps) {
-  const { zoneRef, isFocused } = useFocusZone({ zoneId: 'right-sidebar' });
+export function RightSidebar({ width, visible, children }: RightSidebarProps) {
+  const { zoneRef, isFocused } = useFocusZone({
+    zoneId: 'right-sidebar',
+    enabled: visible,
+  });
   return (
     <div
       ref={zoneRef}
       id="right-sidebar-region"
       role="region"
       aria-label="Right sidebar"
-      tabIndex={isFocused ? 0 : -1}
+      tabIndex={visible && isFocused ? 0 : -1}
       className={cn(
         'h-full relative bg-background shadow-middle overflow-hidden',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',

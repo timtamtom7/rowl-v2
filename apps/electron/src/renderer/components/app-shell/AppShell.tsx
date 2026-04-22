@@ -1173,19 +1173,26 @@ function AppShellContent({
   useAction('nav.focusSidebar', () => focusZone('sidebar', { intent: 'keyboard' }))
   useAction('nav.focusNavigator', () => focusZone('navigator', { intent: 'keyboard' }))
   useAction('nav.focusChat', () => focusZone('chat', { intent: 'keyboard' }))
-  // Cmd+4 — focus the right sidebar, opening it first if hidden.
-  // The RightSidebar only registers its focus zone when mounted, so we
-  // flip visibility first and defer the focus call to a microtask so the
-  // zone has a chance to register.
+  // Cmd+4 — toggle the right sidebar.
+  //
+  // Cmd+1/2/3 focus their always-present zones, but the right sidebar is the
+  // only one that can be hidden entirely, so the positionally-matching Cmd+4
+  // toggles instead of focusing. Every press produces a visible change (the
+  // sidebar slides in or out), which matches what users reach for this shortcut
+  // to do. Tab/Shift+Tab still land in the zone when it's visible.
+  //
+  // Kept on the historical `nav.focusRightSidebar` action id so any stored user
+  // hotkey customizations continue to resolve; the label in definitions.ts now
+  // describes the real behavior.
   useAction('nav.focusRightSidebar', () => {
+    handleToggleRightSidebar()
+    // When opening, move DOM focus into the newly-mounted zone so screen
+    // readers announce it and Tab continues from there. Defer past commit so
+    // the zone has a chance to register via its useEffect.
     if (!rightSidebarVisible) {
-      setRightSidebarVisible(true)
-      // Defer until after commit so the zone's useEffect registration has run.
       requestAnimationFrame(() => {
         focusZone('right-sidebar', { intent: 'keyboard' })
       })
-    } else {
-      focusZone('right-sidebar', { intent: 'keyboard' })
     }
   })
 
@@ -3580,11 +3587,27 @@ function AppShellContent({
         />
 
         {/* Right Sidebar — sibling of PanelStackContainer so layout
-             math (isAtRightEdge panel rounding) can know whether
-             the sidebar is present. */}
-        {rightSidebarVisible && (
-          <RightSidebar width={rightSidebarWidth} />
-        )}
+             math (isAtRightEdge panel rounding) can know whether the
+             sidebar is present. Always mounted: the motion.div animates
+             width/margin/opacity between the visible and hidden states
+             so the slide matches the left sidebar's spring feel. The
+             inner RightSidebar gates its focus-zone registration with
+             the `visible` prop, so Tab cycling skips it during the
+             collapse and while hidden. */}
+        <motion.div
+          data-panel-role="right-sidebar"
+          initial={false}
+          animate={{
+            width: rightSidebarVisible ? rightSidebarWidth : 0,
+            marginLeft: rightSidebarVisible ? 0 : -PANEL_GAP,
+            opacity: rightSidebarVisible ? 1 : 0,
+          }}
+          transition={isResizing === 'right-sidebar' ? { duration: 0 } : springTransition}
+          className="h-full relative shrink-0"
+          style={{ overflow: 'hidden' }}
+        >
+          <RightSidebar width={rightSidebarWidth} visible={rightSidebarVisible} />
+        </motion.div>
 
         {/* Sidebar Resize Handle (absolute, hidden in focused mode and full-screen panels) */}
         {!effectiveSidebarAndNavigatorHidden && !isFullScreenPanel && (
@@ -3673,9 +3696,18 @@ function AppShellContent({
             bottom: PANEL_STACK_VERTICAL_OVERFLOW,
             // Handle sits in the GAP to the LEFT of the sidebar — mirroring the
             // sidebar/session-list handles which center in their respective gaps.
-            // right = sidebarWidth + PANEL_GAP/2 - half_sash positions the hit
-            // zone's center in the middle of that gap.
-            right: rightSidebarWidth + (PANEL_GAP / 2) - PANEL_SASH_HALF_HIT_WIDTH,
+            //
+            // Absolute `right` is measured from the padding box's right edge,
+            // which extends *through* the container's paddingRight. The visible
+            // sidebar edge is one PANEL_EDGE_INSET inward from that, so the gap
+            // center sits at:
+            //   right = PANEL_EDGE_INSET + rightSidebarWidth + PANEL_GAP/2
+            // Subtract half the hit-zone width to center the hit zone there.
+            right:
+              PANEL_EDGE_INSET +
+              rightSidebarWidth +
+              (PANEL_GAP / 2) -
+              PANEL_SASH_HALF_HIT_WIDTH,
             transition: isResizing === 'right-sidebar' ? undefined : 'right 0.15s ease-out',
           }}
           role="separator"

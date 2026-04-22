@@ -84,7 +84,8 @@ export const actions = {
   },
   'nav.focusRightSidebar': {
     id: 'nav.focusRightSidebar',
-    label: 'Focus Right Sidebar',
+    label: 'Toggle Right Sidebar',
+    description: 'Show or hide the right sidebar (moves focus into it when opening)',
     defaultHotkey: 'mod+4',
     category: 'Navigation',
   },
