@@ -128,6 +128,10 @@ export interface CreateSessionOptions {
   branchFromMessageId?: string
   /** Parent session ID used together with branchFromMessageId. */
   branchFromSessionId?: string
+  /** If set, injected as the first-turn context for the new session. */
+  transferredSessionSummary?: string
+  /** If set, links the session back to an Issue for copy-forward resolution. */
+  linkedIssueId?: string
 }
 
 export interface RemoteSessionTransferPayload {

@@ -51,6 +51,8 @@ export const SESSION_PERSISTENT_FIELDS = [
   // Remote transfer handoff
   'transferredSessionSummary',
   'transferredSessionSummaryApplied',
+  // Issue-pipeline kickoff
+  'linkedIssueId',
   // Automation origin
   'triggeredBy',
 ] as const;
@@ -197,6 +199,8 @@ export interface SessionConfig {
   transferredSessionSummaryApplied?: boolean;
   /** Metadata for sessions created by automations */
   triggeredBy?: { automationName?: string; event?: string; timestamp?: number };
+  /** Issue this session was kicked off from (Task 6 of issue-to-plan pipeline). */
+  linkedIssueId?: string;
 }
 
 /**
@@ -288,6 +292,8 @@ export interface SessionHeader {
   transferredSessionSummaryApplied?: boolean;
   /** Metadata for sessions created by automations */
   triggeredBy?: { automationName?: string; event?: string; timestamp?: number };
+  /** Issue this session was kicked off from (Task 6 of issue-to-plan pipeline). */
+  linkedIssueId?: string;
   // Pre-computed fields for fast list loading
   /** Number of messages in session */
   messageCount: number;

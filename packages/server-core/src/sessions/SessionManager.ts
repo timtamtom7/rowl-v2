@@ -856,6 +856,8 @@ interface ManagedSession {
   transferredSessionSummary?: string
   // Whether the transferred-session summary has already been injected.
   transferredSessionSummaryApplied?: boolean
+  /** Issue this session was kicked off from; used by Accept-Plan copy-forward. */
+  linkedIssueId?: string
   // Token refresh manager for OAuth token refresh with rate limiting
   tokenRefreshManager: TokenRefreshManager
   // Metadata for sessions created by automations
@@ -2103,6 +2105,7 @@ export class SessionManager implements ISessionManager {
       // Sync transferred session summary state from disk
       managed.transferredSessionSummary = storedSession.transferredSessionSummary
       managed.transferredSessionSummaryApplied = storedSession.transferredSessionSummaryApplied
+      managed.linkedIssueId = storedSession.linkedIssueId
       sessionLog.debug(`Lazy-loaded ${managed.messages.length} messages for session ${managed.id}`)
 
       // Queue recovery: find orphaned queued messages from crash/restart and re-queue them
@@ -2529,6 +2532,16 @@ export class SessionManager implements ISessionManager {
     }
 
     this.sessions.set(storedSession.id, managed)
+
+    // Issue-pipeline kickoff fields (optional). The SubmitPlan flow reads
+    // linkedIssueId later to resolve which issue a plan copy-forwards to.
+    if (options?.transferredSessionSummary && options.transferredSessionSummary.trim().length > 0) {
+      managed.transferredSessionSummary = options.transferredSessionSummary.trim()
+      managed.transferredSessionSummaryApplied = false
+    }
+    if (options?.linkedIssueId) {
+      managed.linkedIssueId = options.linkedIssueId
+    }
 
     // Initialize session metadata in AutomationSystem for diffing
     const automationSystem = this.automationSystems.get(workspaceRootPath)

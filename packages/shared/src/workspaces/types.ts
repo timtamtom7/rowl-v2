@@ -48,6 +48,8 @@ export interface WorkspaceConfig {
     workingDirectory?: string;
     thinkingLevel?: ThinkingLevel; // Default thinking level ('off', 'low', 'medium', 'high', 'max') - default: 'medium'
     colorTheme?: string; // Color theme override for this workspace (preset ID). Undefined = inherit from app default.
+    /** Workspace-relative path for copy-forwarded plan artifacts. Default: 'docs/plans'. */
+    planStoragePath?: string;
   };
 
   /**
