@@ -1165,7 +1165,21 @@ function AppShellContent({
   useAction('nav.focusSidebar', () => focusZone('sidebar', { intent: 'keyboard' }))
   useAction('nav.focusNavigator', () => focusZone('navigator', { intent: 'keyboard' }))
   useAction('nav.focusChat', () => focusZone('chat', { intent: 'keyboard' }))
-  useAction('nav.focusRightSidebar', () => focusZone('right-sidebar', { intent: 'keyboard' }))
+  // Cmd+4 — focus the right sidebar, opening it first if hidden.
+  // The RightSidebar only registers its focus zone when mounted, so we
+  // flip visibility first and defer the focus call to a microtask so the
+  // zone has a chance to register.
+  useAction('nav.focusRightSidebar', () => {
+    if (!rightSidebarVisible) {
+      setRightSidebarVisible(true)
+      // Defer until after commit so the zone's useEffect registration has run.
+      requestAnimationFrame(() => {
+        focusZone('right-sidebar', { intent: 'keyboard' })
+      })
+    } else {
+      focusZone('right-sidebar', { intent: 'keyboard' })
+    }
+  })
 
   // Tab navigation between zones
   useAction('nav.nextZone', () => {
@@ -1215,13 +1229,17 @@ function AppShellContent({
   useAction('view.toggleRightSidebar', handleToggleRightSidebar)
 
   // Toggle button node — injected into PanelHeader via AppShellContext
+  // NOTE: This uses a lighter "chrome" styling (no shadow, no tooltip wrapper)
+  // rather than PanelHeaderCenterButton — it's an app-level toggle, not a
+  // per-panel action, and sits one-button-left of the per-panel close (X) on
+  // the rightmost panel. The visual distinction is deliberate.
   const rightSidebarToggleButton = React.useMemo(() => (
     <button
       type="button"
       onClick={handleToggleRightSidebar}
       className="p-1.5 rounded-md hover:bg-foreground/[0.05] transition-colors text-muted-foreground hover:text-foreground"
       aria-expanded={rightSidebarVisible}
-      aria-controls="right-sidebar-region"
+      aria-controls={rightSidebarVisible ? 'right-sidebar-region' : undefined}
       aria-label={rightSidebarVisible ? 'Close right sidebar' : 'Open right sidebar'}
       title={`${rightSidebarVisible ? 'Close' : 'Open'} right sidebar (⌘⇧.)`}
     >
