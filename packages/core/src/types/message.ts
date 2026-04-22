@@ -466,6 +466,7 @@ export type ErrorCode =
   | 'invalid_request'        // API rejected the request (e.g., bad image, invalid content)
   | 'image_too_large'        // Image exceeds API dimension/size limits
   | 'provider_error'         // AI provider experiencing issues (overloaded, unavailable)
+  | 'subprocess_dead'        // Pi subprocess exited unexpectedly (dev restart or crash)
   | 'unknown_error';
 
 /**

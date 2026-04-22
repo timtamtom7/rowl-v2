@@ -79,7 +79,8 @@ import type { McpClientPool } from '../mcp/mcp-pool.ts';
 
 // Path utilities
 import { join } from 'path';
-import { homedir } from 'os';
+import { homedir, tmpdir } from 'os';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 
 // Session storage (plans folder path)
 import { getSessionDataPath, getSessionPath, getSessionPlansPath } from '../sessions/storage.ts';
@@ -128,6 +129,53 @@ export class PiAgent extends BaseAgent {
   private readline: ReadlineInterface | null = null;
   private subprocessReady: Promise<void> | null = null;
   private subprocessReadyResolve: (() => void) | null = null;
+
+  // Dev-mode lockfile for cross-restart subprocess tracking
+  private getDevLockfilePath(): string {
+    const sessionId = this.config.session?.id || this._sessionId || 'no-session';
+    return join(tmpdir(), `craft-pi-agent-${sessionId}.lock`);
+  }
+
+  private writeDevLockfile(pid: number): void {
+    try {
+      writeFileSync(
+        this.getDevLockfilePath(),
+        JSON.stringify({ pid, port: this.callbackPort, ts: Date.now() }),
+      );
+    } catch {
+      // ignore
+    }
+  }
+
+  private removeDevLockfile(): void {
+    try {
+      const path = this.getDevLockfilePath();
+      if (existsSync(path)) unlinkSync(path);
+    } catch {
+      // ignore
+    }
+  }
+
+  private killExistingDevSubprocess(): void {
+    const lockfile = this.getDevLockfilePath();
+    if (!existsSync(lockfile)) return;
+    try {
+      const data = JSON.parse(readFileSync(lockfile, 'utf-8'));
+      const pid = data.pid as number;
+      if (pid) {
+        try {
+          process.kill(pid, 0); // check alive
+          this.debug(`Killing stale dev Pi subprocess (pid=${pid})`);
+          process.kill(pid, 'SIGTERM');
+        } catch {
+          // already dead
+        }
+      }
+    } catch {
+      // ignore
+    }
+    this.removeDevLockfile();
+  }
 
   // Pi session ID (managed by subprocess, reported back)
   private piSessionId: string | null = null;
@@ -355,8 +403,13 @@ export class PiAgent extends BaseAgent {
     // Derive AWS env vars from the piAuth credential (single fetch, no race).
     const awsEnv = this.buildAwsEnv(piAuth, runtime);
 
+    const isDevMode = process.env.CRAFT_DEV_HMR === '1';
+    if (isDevMode) {
+      this.killExistingDevSubprocess();
+    }
+
     // Spawn the subprocess
-    const child = spawn(nodePath, args, {
+    const spawnOptions: Parameters<typeof spawn>[2] = {
       cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
@@ -369,9 +422,18 @@ export class PiAgent extends BaseAgent {
         // Propagate debug mode
         CRAFT_DEBUG: (process.argv.includes('--debug') || process.env.CRAFT_DEBUG === '1') ? '1' : '0',
       },
-    });
+    };
+    if (isDevMode) {
+      spawnOptions.detached = true;
+    }
+    const child = spawn(nodePath, args, spawnOptions);
 
     this.subprocess = child;
+
+    if (isDevMode) {
+      child.unref();
+      this.writeDevLockfile(child.pid!);
+    }
 
     // Set up readline for JSONL parsing from stdout
     this.readline = createInterface({
@@ -393,6 +455,7 @@ export class PiAgent extends BaseAgent {
 
     // Handle subprocess exit
     child.on('exit', (code, signal) => {
+      this.removeDevLockfile();
       this.handleSubprocessExit(code, signal);
     });
 
@@ -501,7 +564,7 @@ export class PiAgent extends BaseAgent {
     provider: string;
     credential:
       | { type: 'api_key'; key: string }
-      | { type: 'oauth'; access: string; refresh: string; expires: number }
+      | { type: 'oauth'; access: string; refresh: string; expires: number; projectId?: string }
       | { type: 'iam'; accessKeyId: string; secretAccessKey: string; region?: string; sessionToken?: string }
   } | null> {
     const piAuthProvider = getBackendRuntime(this.config).piAuthProvider;
@@ -514,19 +577,21 @@ export class PiAgent extends BaseAgent {
       if (this.config.authType === 'oauth') {
         const oauth = await credentialManager.getLlmOAuth(slug);
         if (oauth?.accessToken) {
-          // Copilot: pass full OAuth credential so the Pi SDK can derive the
-          // correct API endpoint from the Copilot token's proxy-ep field.
-          // The refresh token is the GitHub access token used to obtain fresh
-          // Copilot tokens when they expire (~1 hour).
-          if (piAuthProvider === 'github-copilot' && oauth.refreshToken) {
-            this.debug(`Retrieved Copilot OAuth credential for Pi provider: ${piAuthProvider}`);
+          // Copilot and Gemini CLI: pass full OAuth credential so the Pi SDK can
+          // handle token refresh and endpoint derivation internally.
+          // The refresh token is the persistent grant used to obtain fresh
+          // access tokens when they expire.
+          const isOAuthPiProvider = piAuthProvider === 'github-copilot' || piAuthProvider === 'google-gemini-cli' || piAuthProvider === 'gemini-pro-sub';
+          if (isOAuthPiProvider && oauth.refreshToken) {
+            this.debug(`Retrieved OAuth credential for Pi provider: ${piAuthProvider}`);
             return {
-              provider: piAuthProvider,
+              provider: piAuthProvider === 'gemini-pro-sub' ? 'google' : piAuthProvider,
               credential: {
                 type: 'oauth',
                 access: oauth.accessToken,
                 refresh: oauth.refreshToken,
                 expires: oauth.expiresAt ?? 0,
+                projectId: oauth.projectId,
               },
             };
           }
@@ -661,6 +726,16 @@ export class PiAgent extends BaseAgent {
             accessToken: newCreds.access,
             refreshToken: newCreds.refresh,
             expiresAt: newCreds.expires,
+          });
+        } else if (piAuthProvider === 'google-gemini-cli' || piAuthProvider === 'gemini-pro-sub') {
+          // Gemini CLI & Pro: refresh the Google OAuth access token
+          const { refreshGeminiCliToken } = await import('@mariozechner/pi-ai/oauth');
+          const newCreds = await refreshGeminiCliToken(stored.refreshToken);
+          await credentialManager.setLlmOAuth(slug, {
+            accessToken: newCreds.access,
+            refreshToken: newCreds.refresh,
+            expiresAt: newCreds.expires,
+            projectId: (newCreds as any).projectId || stored.idToken, // Use new ID if provided, else keep existing
           });
         } else {
           // ChatGPT Plus: use existing refresh utility
@@ -1521,12 +1596,19 @@ export class PiAgent extends BaseAgent {
     this.subprocessReady = null;
     this.subprocessReadyResolve = null;
 
-    // If we were processing, emit error + complete
+    // If we were processing, emit typed_error so SessionManager can retry
     if (this._isProcessing) {
       const exitReason = signal ? `signal ${signal}` : `code ${code}`;
       this.eventQueue.enqueue({
-        type: 'error',
-        message: `Pi subprocess exited unexpectedly (${exitReason})`,
+        type: 'typed_error',
+        error: {
+          code: 'subprocess_dead',
+          title: 'Reconnecting…',
+          message: `Pi subprocess disconnected (${exitReason}), reconnecting…`,
+          canRetry: true,
+          actions: [],
+          details: [],
+        },
       });
       this.eventQueue.complete();
     }

@@ -457,6 +457,29 @@ function createAuthenticatedRegistry(): {
 
   const modelRegistry = PiModelRegistry.inMemory(authStorage);
 
+  // NOTE: Minimax models (MiniMax-M2.7, M2.7-highspeed) are genuinely text-only —
+  // the Pi SDK catalog's `input: ["text"]` is correct. We used to patch it to
+  // ["text","image"] here, which let image bytes through to api.minimax.io/anthropic,
+  // but the underlying model has no vision weights and simply hallucinates descriptions
+  // of any image block it receives (via either inline user content or tool_result).
+  // If you want vision on a Minimax-family model, use MiniMax-M2.5 (native multimodal,
+  // served via HuggingFace provider), not M2.7. See docs/... for details.
+
+  // Gemini Pro Subscription: register 'google' as an OAuth provider and enable bearer auth header.
+  // This ensures that when using the 'google' provider with an OAuth token (mapped from gemini-pro-sub),
+  // the Pi SDK correctly sends the 'Authorization: Bearer' header to the Gemini AI Studio API,
+  // just like the Gemini CLI does for Pro subscribers.
+  modelRegistry.registerProvider('google', {
+    authHeader: true,
+    oauth: {
+      id: 'google',
+      name: 'Google',
+      async login() { throw new Error('Login not implemented in server'); },
+      async refreshToken() { throw new Error('Refresh not implemented in server'); },
+      getApiKey: (creds) => creds.access,
+    }
+  });
+
   // Register custom endpoint models dynamically via Pi SDK's registerProvider API.
   // This makes arbitrary OpenAI/Anthropic-compatible endpoints work through the Pi SDK
   // by creating synthetic Model<Api> objects that the SDK requires.
@@ -1263,6 +1286,9 @@ async function handlePrompt(msg: Extract<InboundMessage, { type: 'prompt' }>): P
 
     // Fire prompt — use followUp when session is already streaming so the
     // message is queued instead of throwing "Agent is already processing".
+    if (msg.images && msg.images.length > 0) {
+      debugLog(`[handlePrompt] attaching ${msg.images.length} image(s): ${msg.images.map(i => `${i.mimeType}(${i.data.length} chars)`).join(', ')}`);
+    }
     await session.prompt(msg.message, {
       images: msg.images && msg.images.length > 0 ? msg.images : undefined,
       streamingBehavior: 'followUp',
@@ -1625,7 +1651,25 @@ function main(): void {
   });
 
   rl.on('close', () => {
+    if (process.env.CRAFT_DEV_HMR === '1') {
+      debugLog(`[dev] stdin closed at ${new Date().toISOString()}, entering survival mode (30s)`);
+      // Keep alive to survive main-process HMR restarts; shutdown after grace period
+      setTimeout(() => {
+        debugLog('[dev] survival timeout expired, shutting down');
+        handleShutdown();
+      }, 30000);
+      return;
+    }
     debugLog('stdin closed, shutting down');
+    handleShutdown();
+  });
+
+  process.on('SIGTERM', () => {
+    debugLog(`[SIGTERM] received at ${new Date().toISOString()}`);
+    if (process.env.CRAFT_DEV_HMR === '1') {
+      debugLog('[SIGTERM] Ignoring in dev mode (CRAFT_DEV_HMR=1)');
+      return;
+    }
     handleShutdown();
   });
 

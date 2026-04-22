@@ -831,6 +831,8 @@ interface ManagedSession {
   authRetryAttempted?: boolean
   // Flag indicating auth retry is in progress (to prevent complete handler from interfering)
   authRetryInProgress?: boolean
+  // Flag to prevent infinite subprocess-restart retry loops
+  subprocessRetryAttempted?: boolean
   // Whether this session is hidden from session list (e.g., mini edit sessions)
   hidden?: boolean
   branchFromMessageId?: string
@@ -4921,6 +4923,7 @@ export class SessionManager implements ISessionManager {
     // Note: authRetryInProgress is NOT reset here - it's managed by the retry logic
     if (!_isAuthRetry) {
       managed.authRetryAttempted = false
+      managed.subprocessRetryAttempted = false
     }
 
     // Store message/attachments for potential retry after auth refresh
@@ -5440,6 +5443,87 @@ export class SessionManager implements ISessionManager {
           type: 'error',
           sessionId,
           error: 'Authentication failed. Please check your credentials.',
+          timestamp: failedMessage.timestamp,
+        }, workspaceId)
+        this.onProcessingStopped(sessionId, 'error')
+      }
+    })
+
+    return true
+  }
+
+  /**
+   * Attempt subprocess retry: destroy agent, respawn, resend last message.
+   * Returns true if retry was initiated, false if conditions not met.
+   */
+  private attemptSubprocessRetry(
+    sessionId: string,
+    managed: ManagedSession,
+    workspaceId: string,
+  ): boolean {
+    if (managed.subprocessRetryAttempted || !managed.lastSentMessage) return false
+
+    sessionLog.info(`Subprocess died, attempting respawn and retry for session ${sessionId}`)
+    managed.subprocessRetryAttempted = true
+
+    // Emit lightweight info so the user sees progress instead of a scary red error
+    this.sendEvent({
+      type: 'info',
+      sessionId,
+      message: 'Reconnecting…',
+      timestamp: this.monotonic(),
+    }, workspaceId)
+
+    setImmediate(async () => {
+      try {
+        // 1. Destroy the agent — next chat() will spawn a fresh subprocess
+        sessionLog.info(`[subprocess-retry] Destroying agent for session ${sessionId}`)
+        managed.agent?.destroy?.()
+        managed.agent = null
+
+        // 2. Retry the message
+        const retryMessage = managed.lastSentMessage
+        const retryAttachments = managed.lastSentAttachments
+        const retryStoredAttachments = managed.lastSentStoredAttachments
+        const retryOptions = managed.lastSentOptions
+
+        if (retryMessage) {
+          sessionLog.info(`[subprocess-retry] Retrying message for session ${sessionId}`)
+          this.setProcessing(managed, false)
+
+          // Remove the user message that was added for this failed attempt
+          // so we don't get duplicate messages when retrying
+          const lastUserMsgIndex = managed.messages.findLastIndex(m => m.role === 'user')
+          if (lastUserMsgIndex !== -1) {
+            managed.messages.splice(lastUserMsgIndex, 1)
+          }
+
+          await this.sendMessage(
+            sessionId,
+            retryMessage,
+            retryAttachments,
+            retryStoredAttachments,
+            retryOptions,
+            undefined,  // existingMessageId
+            true        // _isRetry - prevents infinite retry loop
+          )
+          sessionLog.info(`[subprocess-retry] Retry completed for session ${sessionId}`)
+        }
+      } catch (retryError) {
+        sessionLog.error(`[subprocess-retry] Failed to retry after subprocess death for session ${sessionId}:`, retryError)
+        sessionRuntimeHooks.captureException(retryError, { errorSource: 'subprocess-retry', sessionId })
+        const failedMessage: Message = {
+          id: generateMessageId(),
+          role: 'error',
+          content: 'Connection lost. Please try sending your message again.',
+          timestamp: this.monotonic(),
+          errorCode: 'subprocess_dead',
+        }
+        managed.messages.push(failedMessage)
+        this.sendEvent({
+          type: 'error',
+          sessionId,
+          error: 'Connection lost. Please try sending your message again.',
           timestamp: failedMessage.timestamp,
         }, workspaceId)
         this.onProcessingStopped(sessionId, 'error')
@@ -6459,10 +6543,16 @@ export class SessionManager implements ISessionManager {
         const isAuthError = event.error.code === 'invalid_api_key' ||
           event.error.code === 'expired_oauth_token'
 
-        if (isAuthError && this.attemptAuthRetry(sessionId, managed, workspaceId, event.error.code)) {
-          // Don't add error message or send to renderer - we're handling it via retry
-          break
-        }
+        const isSubprocessDead = event.error.code === 'subprocess_dead'
+      if (isSubprocessDead && this.attemptSubprocessRetry(sessionId, managed, workspaceId)) {
+        // Don't add error message or send to renderer - we're handling it via retry
+        break
+      }
+
+      if (isAuthError && this.attemptAuthRetry(sessionId, managed, workspaceId, event.error.code)) {
+        // Don't add error message or send to renderer - we're handling it via retry
+        break
+      }
 
         // Build rich error message with all diagnostic fields for persistence and UI display
         const typedErrorMessage: Message = {

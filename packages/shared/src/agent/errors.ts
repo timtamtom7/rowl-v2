@@ -26,6 +26,7 @@ export type ErrorCode =
   | 'invalid_request'        // API rejected the request (e.g., bad image, invalid content)
   | 'image_too_large'        // Image exceeds API dimension/size limits
   | 'provider_error'         // AI provider experiencing issues (overloaded, unavailable)
+  | 'subprocess_dead'        // Pi subprocess exited unexpectedly (dev restart or crash)
   | 'unknown_error';
 
 /** Provider info attached to errors for user-facing context */
@@ -225,6 +226,12 @@ const ERROR_DEFINITIONS: Record<ErrorCode, Omit<AgentError, 'code' | 'originalEr
     ],
     canRetry: true,
     retryDelayMs: 5000,
+  },
+  subprocess_dead: {
+    title: 'Reconnecting…',
+    message: 'Pi subprocess disconnected, reconnecting…',
+    actions: [],
+    canRetry: true,
   },
   unknown_error: {
     title: 'Error',

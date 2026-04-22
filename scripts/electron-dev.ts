@@ -259,6 +259,7 @@ function getElectronEnv(): Record<string, string> {
     CRAFT_APP_NAME: process.env.CRAFT_APP_NAME || "Craft Agents",
     CRAFT_DEEPLINK_SCHEME: process.env.CRAFT_DEEPLINK_SCHEME || "craftagents",
     CRAFT_INSTANCE_NUMBER: process.env.CRAFT_INSTANCE_NUMBER || "",
+    CRAFT_DEV_HMR: "1",
   };
 }
 

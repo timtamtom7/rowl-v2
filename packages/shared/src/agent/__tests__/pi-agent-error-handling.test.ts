@@ -121,4 +121,149 @@ describe('PiAgent subprocess error handling', () => {
 
     agent.destroy()
   })
+
+  it('emits typed_error with subprocess_dead code when subprocess exits during processing', () => {
+    const agent = new PiAgent(createConfig())
+
+    const enqueued: any[] = []
+    ;(agent as any).eventQueue.enqueue = (event: any) => {
+      enqueued.push(event)
+    }
+    ;(agent as any).eventQueue.complete = () => {
+      enqueued.push({ type: 'complete' })
+    }
+
+    // Simulate active processing
+    ;(agent as any)._isProcessing = true
+
+    // Simulate subprocess exit with SIGTERM
+    ;(agent as any).handleSubprocessExit(null, 'SIGTERM')
+
+    expect(enqueued).toHaveLength(2)
+    expect(enqueued[0].type).toBe('typed_error')
+    expect(enqueued[0].error.code).toBe('subprocess_dead')
+    expect(enqueued[0].error.canRetry).toBe(true)
+    expect(enqueued[0].error.title).toBe('Reconnecting…')
+    expect(enqueued[1].type).toBe('complete')
+
+    agent.destroy()
+  })
+
+  it('does not emit error when subprocess exits while idle', () => {
+    const agent = new PiAgent(createConfig())
+
+    const enqueued: any[] = []
+    ;(agent as any).eventQueue.enqueue = (event: any) => {
+      enqueued.push(event)
+    }
+
+    // _isProcessing is false by default
+    ;(agent as any).handleSubprocessExit(0, null)
+
+    expect(enqueued).toHaveLength(0)
+
+    agent.destroy()
+  })
+
+  it('rejects pending mini completions on subprocess exit', () => {
+    const agent = new PiAgent(createConfig())
+
+    let rejectedMessage = ''
+    ;(agent as any).pendingMiniCompletions.set('mini-1', {
+      resolve: () => {},
+      reject: (error: Error) => {
+        rejectedMessage = error.message
+      },
+    })
+
+    ;(agent as any).handleSubprocessExit(null, 'SIGTERM')
+
+    expect(rejectedMessage).toContain('Pi subprocess exited unexpectedly')
+    expect((agent as any).pendingMiniCompletions.size).toBe(0)
+
+    agent.destroy()
+  })
+
+  it('uses dev lockfile path based on session id', () => {
+    const agent = new PiAgent(createConfig())
+    const lockfilePath = (agent as any).getDevLockfilePath()
+
+    expect(lockfilePath).toContain('craft-pi-agent-')
+    expect(lockfilePath).toContain('session-test')
+
+    agent.destroy()
+  })
+
+  it('includes image attachments in the prompt message sent to subprocess', async () => {
+    const agent = new PiAgent(createConfig())
+
+    const sentMessages: any[] = []
+    ;(agent as any).send = (msg: any) => {
+      sentMessages.push(msg)
+    }
+    ;(agent as any).ensureSubprocess = async () => {}
+    ;(agent as any).subprocessReady = Promise.resolve()
+    ;(agent as any).eventQueue.drain = async function* () {
+      yield { type: 'complete' } as any
+    }
+
+    const attachments = [
+      {
+        name: 'apple.png',
+        mimeType: 'image/png',
+        base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        storedPath: undefined,
+      },
+    ]
+
+    const generator = (agent as any).chatImpl('What is this?', attachments)
+    // Consume all events from generator
+    for await (const _ of generator) { /* drain */ }
+
+    const promptMsg = sentMessages.find((m: any) => m.type === 'prompt')
+    expect(promptMsg).toBeTruthy()
+    expect(promptMsg.images).toHaveLength(1)
+    expect(promptMsg.images[0].type).toBe('image')
+    expect(promptMsg.images[0].mimeType).toBe('image/png')
+    expect(promptMsg.images[0].data).toBe(attachments[0].base64)
+
+    agent.destroy()
+  })
+
+  it('skips non-image attachments in the images array', async () => {
+    const agent = new PiAgent(createConfig())
+
+    const sentMessages: any[] = []
+    ;(agent as any).send = (msg: any) => {
+      sentMessages.push(msg)
+    }
+    ;(agent as any).ensureSubprocess = async () => {}
+    ;(agent as any).subprocessReady = Promise.resolve()
+    ;(agent as any).eventQueue.drain = async function* () {
+      yield { type: 'complete' } as any
+    }
+
+    const attachments = [
+      {
+        name: 'doc.pdf',
+        mimeType: 'application/pdf',
+        storedPath: '/tmp/doc.pdf',
+      },
+      {
+        name: 'photo.jpg',
+        mimeType: 'image/jpeg',
+        base64: '/9j/4AAQSkZJRgABAQEASABIAAD',
+      },
+    ]
+
+    const generator = (agent as any).chatImpl('Read the doc', attachments)
+    for await (const _ of generator) { /* drain */ }
+
+    const promptMsg = sentMessages.find((m: any) => m.type === 'prompt')
+    expect(promptMsg.images).toHaveLength(1)
+    expect(promptMsg.images[0].mimeType).toBe('image/jpeg')
+    expect(promptMsg.message).toContain('[Attached PDF: doc.pdf]')
+
+    agent.destroy()
+  })
 })
