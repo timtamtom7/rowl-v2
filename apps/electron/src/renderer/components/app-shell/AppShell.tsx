@@ -2518,6 +2518,7 @@ function AppShellContent({
                 onSelect={handleSelectWorkspace}
                 onSelectOverview={handleSelectOverview}
                 onCreate={() => setShowWorkspaceCreation(true)}
+                onSettings={() => handleSettingsClick('app')}
                 onContextMenu={(id, e) => handleWorkspaceRailContextMenu(id, e)}
               />
             </div>

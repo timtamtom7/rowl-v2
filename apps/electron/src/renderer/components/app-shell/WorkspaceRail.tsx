@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Plus, Home } from 'lucide-react';
+import { Plus, Settings } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -36,6 +36,7 @@ export interface WorkspaceRailProps {
   onSelect: (workspaceId: string) => void;
   onSelectOverview: () => void;
   onCreate: () => void;
+  onSettings?: () => void;
   onContextMenu?: (workspaceId: string, e: React.MouseEvent) => void;
 }
 
@@ -111,6 +112,7 @@ export function WorkspaceRail({
   onSelect,
   onSelectOverview,
   onCreate,
+  onSettings,
   onContextMenu,
 }: WorkspaceRailProps) {
   const workspaceIds = React.useMemo(() => workspaces.map((w) => w.id), [workspaces]);
@@ -212,7 +214,8 @@ export function WorkspaceRail({
 
       {/* Separator + add button */}
       <div className="w-8 h-px bg-border/60 mx-auto my-2 shrink-0" aria-hidden="true" />
-      <div className="flex items-center justify-center py-2 shrink-0">
+      <div className="flex flex-col items-center justify-center gap-2 py-4 shrink-0">
+        {/* Add workspace */}
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
             <button
@@ -242,6 +245,40 @@ export function WorkspaceRail({
               )}
             >
               Add workspace
+            </TooltipContent>
+          </TooltipPrimitive.Portal>
+        </Tooltip>
+
+        {/* Settings */}
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onSettings}
+              aria-label="Settings"
+              className={cn(
+                'flex items-center justify-center w-10 h-10',
+                'rounded-[16px] hover:rounded-[12px]',
+                'border-2 border-foreground/30 text-muted-foreground',
+                'hover:border-accent hover:text-accent',
+                'hover:bg-accent/10',
+                'transition-[border-color,color,border-radius,background] duration-150',
+              )}
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipPrimitive.Portal>
+            <TooltipContent
+              side="right"
+              sideOffset={8}
+              className={cn(
+                'z-[100] overflow-hidden rounded-[8px] px-2.5 py-1.5 text-xs',
+                'bg-popover border border-border/50 text-popover-foreground shadow-md',
+                'animate-in fade-in-0 duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-75',
+              )}
+            >
+              Settings
             </TooltipContent>
           </TooltipPrimitive.Portal>
         </Tooltip>
