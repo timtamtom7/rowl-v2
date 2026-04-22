@@ -3444,6 +3444,13 @@ function AppShellContent({
           isResizing={!!isResizing}
         />
 
+        {/* Right Sidebar — sibling of PanelStackContainer so layout
+             math (isAtRightEdge panel rounding) can know whether
+             the sidebar is present. */}
+        {rightSidebarVisible && (
+          <RightSidebar width={rightSidebarWidth} />
+        )}
+
         {/* Sidebar Resize Handle (absolute, hidden in focused mode and full-screen panels) */}
         {!effectiveSidebarAndNavigatorHidden && !isFullScreenPanel && (
         <div
