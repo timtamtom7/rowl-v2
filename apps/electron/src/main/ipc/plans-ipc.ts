@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { readFileSync } from 'fs'
 import { glob } from 'glob'
-import { join, relative } from 'path'
+import { join, relative, resolve, sep } from 'path'
 import matter from 'gray-matter'
 import {
   copyPlanForward,
@@ -10,6 +10,15 @@ import {
 } from '@craft-agent/shared/issues'
 import { getWorkspaceByNameOrId } from '@craft-agent/shared/config'
 import { loadWorkspaceConfig } from '@craft-agent/shared/workspaces'
+
+function assertWithinWorkspace(rootPath: string, candidateAbs: string): string {
+  const normalizedRoot = resolve(rootPath)
+  const normalizedAbs = resolve(candidateAbs)
+  if (normalizedAbs !== normalizedRoot && !normalizedAbs.startsWith(normalizedRoot + sep)) {
+    throw new Error('Path escape rejected')
+  }
+  return normalizedAbs
+}
 
 export interface PlanListEntry {
   workspaceRelativePath: string
@@ -46,6 +55,9 @@ export function registerPlansIpc(): void {
       const { rootPath, planStoragePath } = resolveWorkspace(workspaceId)
       const issue: Issue | undefined = issueId ? readIssue(rootPath, issueId) ?? undefined : undefined
 
+      // Containment: sessionPlanPath MUST live under the workspace root.
+      assertWithinWorkspace(rootPath, sessionPlanPath)
+
       return copyPlanForward({
         sessionPlanPath,
         sessionId,
@@ -75,8 +87,8 @@ export function registerPlansIpc(): void {
           acceptedAt: String(fm.acceptedAt ?? ''),
           planVersion: Number(fm.planVersion ?? 1),
         })
-      } catch {
-        // Skip malformed plan files — don't crash the list call.
+      } catch (err) {
+        console.warn(`[plans-ipc] Skipped ${abs}: ${(err as Error).message}`)
       }
     }
     return entries.sort((a, b) => b.acceptedAt.localeCompare(a.acceptedAt))
@@ -90,7 +102,7 @@ export function registerPlansIpc(): void {
       workspaceRelativePath: string,
     ): Promise<{ frontmatter: PlanListEntry; body: string } | null> => {
       const { rootPath } = resolveWorkspace(workspaceId)
-      const abs = join(rootPath, workspaceRelativePath)
+      const abs = assertWithinWorkspace(rootPath, join(rootPath, workspaceRelativePath))
       try {
         const text = readFileSync(abs, 'utf-8')
         const parsed = matter(text)

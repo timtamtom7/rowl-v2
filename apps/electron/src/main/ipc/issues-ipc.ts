@@ -20,6 +20,12 @@ function sanitizeExt(ext: string): string {
   return ext.replace(/[^a-z0-9]/gi, '').slice(0, 8).toLowerCase() || 'bin'
 }
 
+function assertSafeId(id: string, label: string = 'id'): void {
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+    throw new Error(`Invalid ${label}: ${JSON.stringify(id)}`)
+  }
+}
+
 /**
  * Register issue-related IPC handlers on the main process.
  * Must be called after `app.whenReady()` (inside the same init scope as other
@@ -31,14 +37,17 @@ export function registerIssuesIpc(): void {
   })
 
   ipcMain.handle('issues:read', async (_e, workspaceId: string, issueId: string): Promise<Issue | null> => {
+    assertSafeId(issueId, 'issueId')
     return readIssue(resolveRoot(workspaceId), issueId)
   })
 
   ipcMain.handle('issues:write', async (_e, workspaceId: string, issue: Issue): Promise<void> => {
+    assertSafeId(issue.id, 'issue.id')
     writeIssue(resolveRoot(workspaceId), issue)
   })
 
   ipcMain.handle('issues:delete', async (_e, workspaceId: string, issueId: string): Promise<void> => {
+    assertSafeId(issueId, 'issueId')
     deleteIssue(resolveRoot(workspaceId), issueId)
   })
 
@@ -51,6 +60,7 @@ export function registerIssuesIpc(): void {
       ext: string,
       bytes: Uint8Array,
     ): Promise<{ path: string; hash: string }> => {
+      assertSafeId(issueId, 'issueId')
       if (bytes.byteLength > 10 * 1024 * 1024) {
         throw new Error('Attachment exceeds 10 MB limit')
       }
