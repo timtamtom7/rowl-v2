@@ -266,6 +266,7 @@ export function MainContentPanel({
               navigate(routes.action.newSession({ input: title, send: true }))
             }, 100)
           }}
+          workspaceId={activeWorkspaceId || null}
         />
       </Panel>
     )

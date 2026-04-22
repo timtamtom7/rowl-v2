@@ -2,111 +2,182 @@ import { useState, useEffect, useCallback } from "react"
 import type { Issue, IssueStatus, IssuePriority } from "@craft-agent/shared/issues"
 import { createIssue, generateIssueId } from "@craft-agent/shared/issues"
 
-const STORAGE_KEY = "craft-agent-issues"
+const LEGACY_LS_KEY = "craft-agent-issues"
+const MIGRATION_PROMPT_KEY = "craft-agent-issues-migration-prompted"
 
-function loadFromStorage(): Issue[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as Issue[]
-  } catch {
-    return []
-  }
-}
-
-function saveToStorage(issues: Issue[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(issues))
-}
-
-export function useIssues() {
-  const [issues, setIssues] = useState<Issue[]>([])
-
-  // Load from storage on mount
-  useEffect(() => {
-    setIssues(loadFromStorage())
-  }, [])
-
-  const addIssue = useCallback((
+export interface UseIssuesResult {
+  issues: Issue[]
+  loading: boolean
+  migrationPending: number | null
+  addIssue: (
     title: string,
     options?: { description?: string; priority?: IssuePriority }
-  ): Issue => {
-    const issue: Issue = {
-      ...createIssue(title, options),
-      id: generateIssueId(),
+  ) => Promise<Issue | null>
+  updateIssue: (
+    id: string,
+    updates: Partial<Pick<Issue, "title" | "description" | "status" | "priority" | "linkedSessionIds" | "linkedPlanPaths" | "attachments">>
+  ) => Promise<Issue | null>
+  updateIssueStatus: (id: string, status: IssueStatus) => Promise<Issue | null>
+  deleteIssue: (id: string) => Promise<boolean>
+  getIssue: (id: string) => Issue | null
+  getOpenCount: () => number
+  getIssuesByStatus: (status: IssueStatus) => Issue[]
+  runMigration: () => Promise<{ migrated: number; failed: number }>
+  dismissMigrationPrompt: () => void
+}
+
+export function useIssues(workspaceId: string | null): UseIssuesResult {
+  const [issues, setIssues] = useState<Issue[]>([])
+  const [loading, setLoading] = useState(true)
+  const [migrationPending, setMigrationPending] = useState<number | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!workspaceId) {
+      setIssues([])
+      return
     }
+    const list = await window.electronAPI.issues.list(workspaceId)
+    setIssues(list)
+  }, [workspaceId])
 
-    setIssues(prev => {
-      const updated = [issue, ...prev]
-      saveToStorage(updated)
-      return updated
-    })
-
-    return issue
-  }, [])
-
-  const updateIssue = useCallback((
-    id: string,
-    updates: Partial<Pick<Issue, "title" | "description" | "status" | "priority">>
-  ): Issue | null => {
-    let updated: Issue | null = null
-
-    setIssues(prev => {
-      const index = prev.findIndex(i => i.id === id)
-      if (index === -1) return prev
-
-      const issue = prev[index]
-      updated = {
-        ...issue,
-        ...updates,
-        updatedAt: new Date().toISOString(),
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      setLoading(true)
+      try {
+        await refresh()
+        if (!cancelled && workspaceId) {
+          const raw = localStorage.getItem(LEGACY_LS_KEY)
+          const dismissed = localStorage.getItem(MIGRATION_PROMPT_KEY) === "dismissed"
+          if (raw && !dismissed) {
+            try {
+              const legacy = JSON.parse(raw) as Array<unknown>
+              if (Array.isArray(legacy) && legacy.length > 0) {
+                setMigrationPending(legacy.length)
+              }
+            } catch {
+              // Malformed legacy data; ignore.
+            }
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
       }
+    })()
+    return () => { cancelled = true }
+  }, [refresh, workspaceId])
 
-      const next = [...prev]
-      next[index] = updated
-      saveToStorage(next)
-      return next
-    })
+  const addIssue = useCallback<UseIssuesResult["addIssue"]>(async (title, options) => {
+    if (!workspaceId) return null
+    const base = createIssue(title, options)
+    const issue: Issue = { ...base, id: generateIssueId() }
+    await window.electronAPI.issues.write(workspaceId, issue)
+    await refresh()
+    return issue
+  }, [workspaceId, refresh])
 
-    return updated
-  }, [])
+  const updateIssue = useCallback<UseIssuesResult["updateIssue"]>(async (id, updates) => {
+    if (!workspaceId) return null
+    const current = await window.electronAPI.issues.read(workspaceId, id)
+    if (!current) return null
+    const next: Issue = {
+      ...current,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    }
+    await window.electronAPI.issues.write(workspaceId, next)
+    await refresh()
+    return next
+  }, [workspaceId, refresh])
 
-  const updateIssueStatus = useCallback((
-    id: string,
-    status: IssueStatus
-  ): Issue | null => {
+  const updateIssueStatus = useCallback<UseIssuesResult["updateIssueStatus"]>(async (id, status) => {
     return updateIssue(id, { status })
   }, [updateIssue])
 
-  const deleteIssue = useCallback((id: string): boolean => {
-    let found = false
+  const deleteIssue = useCallback<UseIssuesResult["deleteIssue"]>(async (id) => {
+    if (!workspaceId) return false
+    await window.electronAPI.issues.delete(workspaceId, id)
+    await refresh()
+    return true
+  }, [workspaceId, refresh])
 
-    setIssues(prev => {
-      const index = prev.findIndex(i => i.id === id)
-      if (index === -1) return prev
-      found = true
-
-      const next = prev.filter(i => i.id !== id)
-      saveToStorage(next)
-      return next
-    })
-
-    return found
-  }, [])
-
-  const getIssue = useCallback((id: string): Issue | null => {
+  const getIssue = useCallback<UseIssuesResult["getIssue"]>((id) => {
     return issues.find(i => i.id === id) ?? null
   }, [issues])
 
-  const getOpenCount = useCallback((): number => {
+  const getOpenCount = useCallback<UseIssuesResult["getOpenCount"]>(() => {
     return issues.filter(i => i.status !== "done").length
   }, [issues])
 
-  const getIssuesByStatus = useCallback((status: IssueStatus): Issue[] => {
+  const getIssuesByStatus = useCallback<UseIssuesResult["getIssuesByStatus"]>((status) => {
     return issues.filter(i => i.status === status)
   }, [issues])
 
+  const runMigration = useCallback<UseIssuesResult["runMigration"]>(async () => {
+    if (!workspaceId) return { migrated: 0, failed: 0 }
+    const raw = localStorage.getItem(LEGACY_LS_KEY)
+    if (!raw) return { migrated: 0, failed: 0 }
+    let legacy: Array<{
+      id: string
+      title: string
+      description?: string
+      status: IssueStatus
+      priority: IssuePriority
+      createdAt: string
+      updatedAt: string
+      linkedSessionId?: string
+    }>
+    try {
+      legacy = JSON.parse(raw)
+    } catch {
+      return { migrated: 0, failed: 0 }
+    }
+
+    let migrated = 0
+    let failed = 0
+    const remaining: typeof legacy = []
+
+    for (const old of legacy) {
+      const issue: Issue = {
+        id: old.id,
+        title: old.title,
+        description: old.description,
+        status: old.status,
+        priority: old.priority,
+        createdAt: old.createdAt,
+        updatedAt: old.updatedAt,
+        linkedSessionIds: old.linkedSessionId ? [old.linkedSessionId] : [],
+        linkedPlanPaths: [],
+      }
+      try {
+        await window.electronAPI.issues.write(workspaceId, issue)
+        migrated++
+      } catch {
+        failed++
+        remaining.push(old)
+      }
+    }
+
+    if (remaining.length === 0) {
+      localStorage.removeItem(LEGACY_LS_KEY)
+    } else {
+      localStorage.setItem(LEGACY_LS_KEY, JSON.stringify(remaining))
+    }
+
+    setMigrationPending(null)
+    await refresh()
+    return { migrated, failed }
+  }, [workspaceId, refresh])
+
+  const dismissMigrationPrompt = useCallback(() => {
+    localStorage.setItem(MIGRATION_PROMPT_KEY, "dismissed")
+    setMigrationPending(null)
+  }, [])
+
   return {
     issues,
+    loading,
+    migrationPending,
     addIssue,
     updateIssue,
     updateIssueStatus,
@@ -114,5 +185,7 @@ export function useIssues() {
     getIssue,
     getOpenCount,
     getIssuesByStatus,
+    runMigration,
+    dismissMigrationPrompt,
   }
 }

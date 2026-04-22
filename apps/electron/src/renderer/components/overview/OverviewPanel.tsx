@@ -142,7 +142,7 @@ export function OverviewPanel() {
   const sources = useAtomValue(sourcesAtom);
   const setSendToWorkspace = useSetAtom(sendToWorkspaceAtom);
   const { workspaces, activeWorkspaceId } = useAppShellContext();
-  const { issues } = useIssues();
+  const { issues } = useIssues(activeWorkspaceId || null);
 
   const workspaceNameById = React.useMemo(() => {
     const m = new Map<string, string>();

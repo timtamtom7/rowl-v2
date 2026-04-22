@@ -44,11 +44,21 @@ const PRIORITY_DOT: Record<string, string> = {
 interface IssuesPanelProps {
   onBack?: () => void
   onCreateSession: (title: string) => void
+  workspaceId: string | null
 }
 
-export function IssuesPanel({ onCreateSession }: IssuesPanelProps) {
+export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) {
   const { t } = useTranslation()
-  const { issues, addIssue, updateIssue, updateIssueStatus, deleteIssue } = useIssues()
+  const {
+    issues,
+    addIssue,
+    updateIssue,
+    updateIssueStatus,
+    deleteIssue,
+    migrationPending,
+    runMigration,
+    dismissMigrationPrompt,
+  } = useIssues(workspaceId)
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [searchQuery, setSearchQuery] = useState("")
@@ -83,14 +93,14 @@ export function IssuesPanel({ onCreateSession }: IssuesPanelProps) {
 
   const handleCreateIssue = () => {
     if (newIssueTitle.trim()) {
-      addIssue(newIssueTitle.trim())
+      void addIssue(newIssueTitle.trim())
       setNewIssueTitle("")
       setShowCreate(false)
     }
   }
 
   const handleStatusChange = (issueId: string, newStatus: IssueStatus) => {
-    updateIssueStatus(issueId, newStatus)
+    void updateIssueStatus(issueId, newStatus)
   }
 
   const handleConvertToSession = (issue: Issue) => {
@@ -98,12 +108,38 @@ export function IssuesPanel({ onCreateSession }: IssuesPanelProps) {
   }
 
   const handleDelete = (issueId: string) => {
-    deleteIssue(issueId)
+    void deleteIssue(issueId)
     setSelectedIssue(null)
   }
 
   return (
     <div className="flex flex-col h-full bg-background">
+      {/* Migration banner */}
+      {migrationPending !== null && (
+        <div className="mx-6 mt-3 border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 py-2 rounded-md flex items-center gap-3 text-sm">
+          <span className="flex-1">
+            {t("issues.migrationPrompt", {
+              count: migrationPending,
+              defaultValue: `Migrate ${migrationPending} issues from local storage to files?`,
+            })}
+          </span>
+          <button
+            type="button"
+            className="underline font-medium"
+            onClick={() => { void runMigration() }}
+          >
+            {t("issues.migrateNow", "Migrate")}
+          </button>
+          <button
+            type="button"
+            className="underline opacity-70"
+            onClick={dismissMigrationPrompt}
+          >
+            {t("issues.migrateDismiss", "Not now")}
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-6 pt-5 pb-3 border-b border-border/40">
         <div className="flex items-end justify-between gap-3 mb-3">
