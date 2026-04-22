@@ -114,7 +114,10 @@ export function IssuesPanel({ onOpenSession, workspaceId }: IssuesPanelProps) {
   const handleStartSession = async (issue: Issue) => {
     if (!workspaceId) return
     try {
-      await startSessionFromIssue(issue)
+      const sessionId = await startSessionFromIssue(issue)
+      if (sessionId !== null) {
+        setSelectedIssue(null)
+      }
     } catch (err) {
       console.error("[issues] Failed to start session", err)
     }
@@ -338,7 +341,7 @@ export function IssuesPanel({ onOpenSession, workspaceId }: IssuesPanelProps) {
           onClose={() => setSelectedIssue(null)}
           onUpdate={updateIssue}
           onDelete={() => handleDelete(selectedIssue.id)}
-          onStartSession={(issue) => { void handleStartSession(issue); setSelectedIssue(null) }}
+          onStartSession={(issue) => { void handleStartSession(issue) }}
           onStatusChange={(status) => handleStatusChange(selectedIssue.id, status)}
           onOpenSession={onOpenSession}
           onOpenPlan={handleOpenPlan}

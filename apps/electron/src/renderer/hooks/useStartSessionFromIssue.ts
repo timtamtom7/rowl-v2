@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import type { Issue } from '@craft-agent/shared/issues';
 import { formatFirstTurnContext } from '@craft-agent/shared/issues';
 
@@ -14,26 +14,33 @@ export interface StartSessionFromIssueDeps {
 
 export function useStartSessionFromIssue(deps: StartSessionFromIssueDeps) {
   const { workspaceId, updateIssue, onSessionCreated } = deps;
+  const inFlightRef = useRef(false);
 
   return useCallback(
-    async (issue: Issue): Promise<string> => {
-      const summary = formatFirstTurnContext(issue);
-      const session = await window.electronAPI.createSession(workspaceId, {
-        name: issue.title,
-        permissionMode: 'safe',
-        transferredSessionSummary: summary,
-        linkedIssueId: issue.id,
-      });
+    async (issue: Issue): Promise<string | null> => {
+      if (inFlightRef.current) return null;
+      inFlightRef.current = true;
+      try {
+        const summary = formatFirstTurnContext(issue);
+        const session = await window.electronAPI.createSession(workspaceId, {
+          name: issue.title,
+          permissionMode: 'safe',
+          transferredSessionSummary: summary,
+          linkedIssueId: issue.id,
+        });
 
-      const sessionId = session.id;
+        const sessionId = session.id;
 
-      await updateIssue(issue.id, {
-        linkedSessionIds: [...issue.linkedSessionIds, sessionId],
-        status: issue.status === 'backlog' ? 'in_progress' : issue.status,
-      });
+        await updateIssue(issue.id, {
+          linkedSessionIds: [...issue.linkedSessionIds, sessionId],
+          status: issue.status === 'backlog' ? 'in_progress' : issue.status,
+        });
 
-      onSessionCreated?.(sessionId);
-      return sessionId;
+        onSessionCreated?.(sessionId);
+        return sessionId;
+      } finally {
+        inFlightRef.current = false;
+      }
     },
     [workspaceId, updateIssue, onSessionCreated]
   );
