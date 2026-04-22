@@ -1161,7 +1161,7 @@ function AppShellContent({
   }, [navState, navigate])
 
   // Focus zone management
-  const { focusZone, focusNextZone, focusPreviousZone } = useFocusContext()
+  const { focusZone, focusNextZone, focusPreviousZone, currentZone } = useFocusContext()
 
   // Register focus zones
   const { zoneRef: sidebarRef, isFocused: sidebarFocused } = useFocusZone({ zoneId: 'sidebar' })
@@ -1823,12 +1823,13 @@ function AppShellContent({
   //
   // Subtle invariants:
   //   - Entering auto-compact snapshots the current pref into a ref, then
-  //     hides the sidebar (which triggers the persistence effect above and
-  //     writes `false` to localStorage — acceptable because we restore on
-  //     the way out).
+  //     hides the sidebar. The persistence effect above skips writes while
+  //     `isAutoCompact` is true, so this transient hide does NOT clobber the
+  //     stored preference.
   //   - Leaving auto-compact restores `rightSidebarPreAutoCompactRef.current`
   //     (which may have been updated by a manual toggle during auto-compact —
-  //     see handleToggleRightSidebar).
+  //     see handleToggleRightSidebar); the persistence effect then fires
+  //     with isAutoCompact=false and writes the restored value.
   //   - We intentionally do NOT depend on `rightSidebarVisible` here, because
   //     we only want to react to auto-compact TRANSITIONS; depending on
   //     visibility would re-run on every toggle and could overwrite the ref
@@ -1853,6 +1854,16 @@ function AppShellContent({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAutoCompact])
+
+  // If the right sidebar is hidden while it owns focus (manual toggle, auto-compact,
+  // or any other path), move focus back to chat so DOM focus doesn't orphan on the
+  // now-unmounted region. The RightSidebar zone auto-unregisters on unmount; this
+  // effect handles the user-visible focus handoff.
+  React.useEffect(() => {
+    if (!rightSidebarVisible && currentZone === 'right-sidebar') {
+      focusZone('chat', { intent: 'programmatic' })
+    }
+  }, [rightSidebarVisible, currentZone, focusZone])
 
   // Persist focus mode state to localStorage
   React.useEffect(() => {

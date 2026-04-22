@@ -115,16 +115,29 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
 
   const focusNextZone = useCallback(() => {
     const currentIndex = focusState.zone ? ZONE_ORDER.indexOf(focusState.zone) : -1
-    const nextIndex = (currentIndex + 1) % ZONE_ORDER.length
-    // Tab navigation is explicit keyboard intent - always move focus
-    focusZone(ZONE_ORDER[nextIndex], { intent: 'keyboard', moveFocus: true })
+    // Skip unregistered zones (e.g., 'right-sidebar' when hidden) so Tab
+    // cycling doesn't dead-end on a conditionally rendered zone.
+    for (let step = 1; step <= ZONE_ORDER.length; step++) {
+      const idx = (currentIndex + step) % ZONE_ORDER.length
+      const candidate = ZONE_ORDER[idx]
+      if (zonesRef.current.has(candidate)) {
+        focusZone(candidate, { intent: 'keyboard', moveFocus: true })
+        return
+      }
+    }
   }, [focusState.zone, focusZone])
 
   const focusPreviousZone = useCallback(() => {
     const currentIndex = focusState.zone ? ZONE_ORDER.indexOf(focusState.zone) : 0
-    const prevIndex = (currentIndex - 1 + ZONE_ORDER.length) % ZONE_ORDER.length
-    // Shift+Tab navigation is explicit keyboard intent - always move focus
-    focusZone(ZONE_ORDER[prevIndex], { intent: 'keyboard', moveFocus: true })
+    // Skip unregistered zones (mirror of focusNextZone — see comment above).
+    for (let step = 1; step <= ZONE_ORDER.length; step++) {
+      const idx = (currentIndex - step + ZONE_ORDER.length) % ZONE_ORDER.length
+      const candidate = ZONE_ORDER[idx]
+      if (zonesRef.current.has(candidate)) {
+        focusZone(candidate, { intent: 'keyboard', moveFocus: true })
+        return
+      }
+    }
   }, [focusState.zone, focusZone])
 
   const isZoneFocused = useCallback((id: FocusZoneId) => {
