@@ -11,12 +11,14 @@ export type IssuePriority = 'low' | 'medium' | 'high';
 export interface Issue {
   id: string;
   title: string;
-  description?: string;
+  description?: string;           // markdown body
   status: IssueStatus;
   priority: IssuePriority;
-  createdAt: string;
-  updatedAt: string;
-  linkedSessionId?: string;
+  createdAt: string;              // ISO 8601
+  updatedAt: string;              // ISO 8601
+  linkedSessionIds: string[];     // required; [] when none
+  linkedPlanPaths: string[];      // required; [] when none (workspace-relative paths)
+  attachments?: string[];         // optional; workspace-relative paths under issues/{id}/attachments/
 }
 
 /**
@@ -24,17 +26,18 @@ export interface Issue {
  */
 export function createIssue(
   title: string,
-  options?: Partial<Pick<Issue, 'description' | 'priority' | 'linkedSessionId'>>
+  options?: Partial<Pick<Issue, 'description' | 'priority'>>,
 ): Omit<Issue, 'id'> {
   const now = new Date().toISOString();
   return {
     title,
-    description: options?.description,
+    description: options?.description ?? '',
     status: 'backlog',
     priority: options?.priority ?? 'medium',
     createdAt: now,
     updatedAt: now,
-    linkedSessionId: options?.linkedSessionId,
+    linkedSessionIds: [],
+    linkedPlanPaths: [],
   };
 }
 
