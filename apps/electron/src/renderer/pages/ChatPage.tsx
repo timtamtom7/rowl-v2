@@ -20,9 +20,10 @@ import { DropdownMenu, DropdownMenuTrigger } from '@/components/ui/dropdown-menu
 import { StyledDropdownMenuContent, StyledDropdownMenuItem, StyledDropdownMenuSeparator } from '@/components/ui/styled-dropdown'
 import { useAppShellContext, usePendingPermission, usePendingCredential, useSessionOptionsFor, useSession as useSessionData } from '@/context/AppShellContext'
 import { rendererPerf } from '@/lib/perf'
-import { routes } from '@/lib/navigate'
+import { navigate, routes } from '@/lib/navigate'
 import { ensureSessionMessagesLoadedAtom, loadedSessionsAtom, sessionMetaMapAtom } from '@/atoms/sessions'
 import { getSessionTitle } from '@/utils/session'
+import type { Issue } from '@craft-agent/shared/issues'
 // Model resolution: connection.defaultModel (no hardcoded defaults)
 import { resolveEffectiveConnectionSlug, isSessionConnectionUnavailable } from '@config/llm-connections'
 
@@ -322,6 +323,22 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
   // Use isAsyncOperationOngoing for shimmer effect (sharing, updating share, revoking, title regeneration)
   const isAsyncOperationOngoing = session?.isAsyncOperationOngoing || sessionMeta?.isAsyncOperationOngoing || false
 
+  // Linked issue chip state (issue-to-plan pipeline)
+  const [linkedIssue, setLinkedIssue] = React.useState<Issue | null | 'deleted'>(null)
+  React.useEffect(() => {
+    const linkedIssueId = session?.linkedIssueId
+    if (!linkedIssueId || !activeWorkspaceId) {
+      setLinkedIssue(null)
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const issue = await window.electronAPI.issues.read(activeWorkspaceId, linkedIssueId)
+      if (!cancelled) setLinkedIssue(issue ?? 'deleted')
+    })()
+    return () => { cancelled = true }
+  }, [session?.linkedIssueId, activeWorkspaceId])
+
   // Rename dialog state
   const [renameDialogOpen, setRenameDialogOpen] = React.useState(false)
   const [renameName, setRenameName] = React.useState('')
@@ -561,7 +578,24 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
       return (
         <>
           <div className="h-full flex flex-col">
-            <PanelHeader  title={displayTitle} titleMenu={titleMenu} leadingAction={leadingAction} actions={headerActions} rightSidebarButton={rightSidebarButton} isRegeneratingTitle={isAsyncOperationOngoing} />
+            <PanelHeader
+          title={displayTitle}
+          titleMenu={titleMenu}
+          leadingAction={leadingAction}
+          actions={headerActions}
+          rightSidebarButton={rightSidebarButton}
+          isRegeneratingTitle={isAsyncOperationOngoing}
+          badge={linkedIssue === 'deleted' ? (
+            <span className="text-xs text-muted-foreground/60 italic">Issue deleted</span>
+          ) : linkedIssue ? (
+            <button
+              className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 titlebar-no-drag"
+              onClick={() => navigate(routes.view.issues(linkedIssue.id))}
+            >
+              Working on Issue: <span className="font-medium">{linkedIssue.title}</span>
+            </button>
+          ) : undefined}
+        />
             <div className="flex-1 flex flex-col min-h-0">
               <ChatDisplay
                 ref={chatDisplayRef}
