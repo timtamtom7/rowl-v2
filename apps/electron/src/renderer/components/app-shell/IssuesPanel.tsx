@@ -92,6 +92,7 @@ export function IssuesPanel({ onCreateSession, workspaceId }: IssuesPanelProps) 
   }, [issues, statusFilter, searchQuery])
 
   const handleCreateIssue = () => {
+    if (!workspaceId) return
     if (newIssueTitle.trim()) {
       void addIssue(newIssueTitle.trim())
       setNewIssueTitle("")
