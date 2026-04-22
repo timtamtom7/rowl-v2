@@ -86,3 +86,8 @@ credentials.enc
 # act (local GitHub Actions runner)
 .secrets
 .actrc
+
+# Local scratch / dev-only artifacts (not part of the repo)
+.letta/
+codegraph.sqlite
+icon.png
