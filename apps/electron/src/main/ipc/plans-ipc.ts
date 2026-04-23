@@ -3,11 +3,11 @@ import { readFileSync } from 'fs'
 import { glob } from 'glob'
 import { join, relative, resolve, sep } from 'path'
 import matter from 'gray-matter'
+import type { Issue } from '@craft-agent/shared/issues'
 import {
   copyPlanForward,
   readIssue,
-  type Issue,
-} from '@craft-agent/shared/issues'
+} from '@craft-agent/shared/issues/node'
 import { getWorkspaceByNameOrId } from '@craft-agent/shared/config'
 import { loadWorkspaceConfig } from '@craft-agent/shared/workspaces'
 

@@ -1,13 +1,13 @@
 import { ipcMain } from 'electron'
 import { createHash } from 'crypto'
+import type { Issue } from '@craft-agent/shared/issues'
 import {
   deleteIssue,
   listIssues,
   readIssue,
   writeAttachment,
   writeIssue,
-  type Issue,
-} from '@craft-agent/shared/issues'
+} from '@craft-agent/shared/issues/node'
 import { getWorkspaceByNameOrId } from '@craft-agent/shared/config'
 
 function resolveRoot(workspaceId: string): string {
