@@ -690,6 +690,30 @@ export interface ElectronAPI {
       workspaceRelativePath: string
     } | null>
   }
+
+  // Plan lifecycle (this sub-project)
+  plansLifecycle: {
+    createBranch(
+      workspaceId: string,
+      planRel: string,
+      args: { branchName: string; mode: 'worktree' | 'inline'; baseBranch: string },
+    ): Promise<{ branchName: string; worktreePath: string | null }>
+    startValidation(workspaceId: string, planRel: string): Promise<{ draft: string }>
+    markValidated(workspaceId: string, planRel: string, summary: string): Promise<{ ok: true }>
+    merge(
+      workspaceId: string,
+      planRel: string,
+      args: {
+        baseBranch: string
+        strategy: 'squash' | 'fast-forward'
+        subject: string
+        body: string
+        deleteBranchAfter: boolean
+        deleteWorktreeAfter: boolean
+        appendChangelog: boolean
+      },
+    ): Promise<{ mergeCommitSha: string; cleanupWarnings: string[] }>
+  }
 }
 
 // =============================================================================
