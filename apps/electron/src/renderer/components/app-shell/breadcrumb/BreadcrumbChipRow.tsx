@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import * as ContextMenu from '@radix-ui/react-context-menu';
-import { MessageSquare, FileText, Settings as SettingsIcon, Sparkles, Layers, Lightbulb, Activity, type LucideIcon } from 'lucide-react';
+import { MessageSquare, FileText, Settings as SettingsIcon, Sparkles, Layers, CircleDot, Activity, type LucideIcon } from 'lucide-react';
 import {
   panelStackAtom,
   focusedPanelIdAtom,
@@ -22,7 +22,7 @@ const ICON_FOR_TYPE: Record<PanelType, LucideIcon> = {
   source: FileText,
   settings: SettingsIcon,
   skills: Sparkles,
-  issues: Lightbulb,
+  issues: CircleDot,
   overview: Activity,
   other: Layers,
 };
@@ -37,9 +37,9 @@ export interface BreadcrumbChipRowProps {
 export function BreadcrumbChipRow({ labelFor, onOpenAllSessionsDropdown }: BreadcrumbChipRowProps) {
   const panels = useAtomValue(panelStackAtom);
   const [focusedId, setFocusedId] = useAtom(focusedPanelIdAtom);
-  const closePanel = useSetAtom(closePanelAtom);
   const mode = useAtomValue(activeWorkspaceAllSessionsModeAtom);
   const toggleMode = useSetAtom(toggleAllSessionsModeAtom);
+  const closePanel = useSetAtom(closePanelAtom);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
   const { visibleIds, hiddenPanels, chipMaxWidth } = useBreadcrumbOverflow(
@@ -63,35 +63,20 @@ export function BreadcrumbChipRow({ labelFor, onOpenAllSessionsDropdown }: Bread
 
   const visiblePanels = panels.filter((p) => effectiveVisibleIds.has(p.id));
 
-  const handleChipClick = React.useCallback(
-    (panel: PanelStackEntry, isFirst: boolean) => {
-      if (isFirst && mode === 'dropdown') {
-        onOpenAllSessionsDropdown?.();
-        return;
-      }
-      setFocusedId(panel.id);
-    },
-    [mode, onOpenAllSessionsDropdown, setFocusedId],
-  );
-
   return (
-    <div ref={containerRef} className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+    <div ref={containerRef} className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden">
       {visiblePanels.map((panel, idx) => {
         const isFirst = panels.indexOf(panel) === 0;
-        const label = isFirst ? 'Sessions' : labelFor(panel);
+        const label = labelFor(panel);
         const variant: 'chip' | 'trigger' = isFirst && mode === 'dropdown' ? 'trigger' : 'chip';
-        const closable = !isFirst; // All Sessions is pinned
         const chipEl = (
           <BreadcrumbChip
             id={panel.id}
             label={label}
             icon={ICON_FOR_TYPE[panel.panelType]}
             focused={panel.id === focusedId}
-            closable={closable}
             variant={variant}
             maxWidth={chipMaxWidth}
-            onClick={() => handleChipClick(panel, isFirst)}
-            onClose={closable ? () => closePanel(panel.id) : undefined}
           />
         );
         return (

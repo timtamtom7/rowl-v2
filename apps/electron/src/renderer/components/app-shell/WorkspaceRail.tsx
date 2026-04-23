@@ -248,10 +248,9 @@ export function WorkspaceRail({
               className={cn(
                 'flex items-center justify-center w-10 h-10',
                 'rounded-[16px] hover:rounded-[12px]',
-                'border-2 border-foreground/30 text-muted-foreground',
-                'hover:border-accent hover:text-accent',
-                'hover:bg-accent/10',
-                'transition-[border-color,color,border-radius,background] duration-150',
+                'text-muted-foreground',
+                'hover:text-accent hover:bg-accent/10',
+                'transition-[color,border-radius,background] duration-150',
               )}
             >
               <Settings className="h-5 w-5" />
