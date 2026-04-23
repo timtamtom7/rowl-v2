@@ -12,7 +12,6 @@ import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
-  arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 // Import tooltip primitives directly to avoid @craft-agent/ui's barrel pulling
@@ -45,17 +44,7 @@ export interface WorkspaceRailProps {
  * dragEnd event's active/over ids, returns the new order or null if no move
  * should be persisted.
  */
-export function computeOrderAfterDrag(
-  currentIds: string[],
-  activeId: string,
-  overId: string | null,
-): string[] | null {
-  if (overId === null || activeId === overId) return null;
-  const oldIndex = currentIds.indexOf(activeId);
-  const newIndex = currentIds.indexOf(overId);
-  if (oldIndex === -1 || newIndex === -1) return null;
-  return arrayMove(currentIds, oldIndex, newIndex);
-}
+import { computeOrderAfterDrag } from './workspace-rail-dnd'
 
 function SortableAvatar({
   workspace,

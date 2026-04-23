@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { computeOrderAfterDrag } from '../WorkspaceRail';
+import { computeOrderAfterDrag } from '../workspace-rail-dnd';
 
 describe('computeOrderAfterDrag', () => {
   it('returns null when active and over are the same', () => {
