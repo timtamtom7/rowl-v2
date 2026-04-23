@@ -71,6 +71,15 @@ pnpm-lock.yaml
 /config.json
 /events.jsonl
 /.claude-plugin/
+# Issues pipeline (Y) writes per-workspace issue files here when Rowl is
+# opened as a workspace on itself. These are user dogfood data, not
+# roadmap artifacts.
+/issues/
+# Y pipeline's orphan dropoff for Accept-Plan on sessions without a linked
+# issue. Intermingles with Rowl's own /docs/plans/ meta-plans — ignored
+# at the _orphaned level only so roadmap plans stay tracked. The broader
+# plan-storage-path collision is a follow-up design item.
+/docs/plans/_orphaned/
 
 # SSH keys and secrets
 *.pem
