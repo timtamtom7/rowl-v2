@@ -31,7 +31,7 @@ import {
   Radio,
   Bot,
   Info,
-  Lightbulb,
+  CircleDot,
   PanelRightOpen,
   PanelRightClose,
 } from "lucide-react"
@@ -81,7 +81,6 @@ import { PanelStackContainer } from "./PanelStackContainer"
 import type { ChatDisplayHandle } from "./ChatDisplay"
 import { LeftSidebar } from "./LeftSidebar"
 import { RightSidebar } from './RightSidebar'
-import { PlansPanel } from './PlansPanel'
 import {
   clampRightSidebarWidth,
   RIGHT_SIDEBAR_DEFAULT_WIDTH,
@@ -1523,6 +1522,7 @@ function AppShellContent({
       }
       if (panel.panelType === 'settings') return 'Settings'
       if (panel.panelType === 'skills') return 'Skills'
+      if (panel.panelType === 'issues') return 'Issues'
       return 'Panel'
     },
     [activeSessionMetas, sources],
@@ -2638,7 +2638,7 @@ function AppShellContent({
                         onClick={handleIssuesClick}
                         className="flex-1 min-w-0 justify-start gap-2 py-[7px] px-2 text-[13px] font-normal rounded-[6px] shadow-minimal bg-background"
                       >
-                        <Lightbulb className="h-3.5 w-3.5 shrink-0" />
+                        <CircleDot className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">{t("session.newIssue", "New issue")}</span>
                       </Button>
                     </TooltipTrigger>
@@ -2865,7 +2865,7 @@ function AppShellContent({
                     {
                       id: "nav:issues",
                       title: t("sidebar.issues"),
-                      icon: Lightbulb,
+                      icon: CircleDot,
                       variant: isIssuesNavigation(navState) ? "default" : "ghost",
                       onClick: handleIssuesClick,
                     },
@@ -3608,15 +3608,7 @@ function AppShellContent({
           className="h-full relative shrink-0"
           style={{ overflow: 'hidden' }}
         >
-          <RightSidebar width={rightSidebarWidth} visible={rightSidebarVisible}>
-            {activeWorkspaceId && (
-              <PlansPanel
-                workspaceId={activeWorkspaceId}
-                onOpenSession={navigateToSessionInPanel}
-                onOpenIssue={(issueId) => navigate(routes.view.issues(issueId))}
-              />
-            )}
-          </RightSidebar>
+          <RightSidebar width={rightSidebarWidth} visible={rightSidebarVisible} />
         </motion.div>
 
         {/* Sidebar Resize Handle (absolute, hidden in focused mode and full-screen panels) */}
