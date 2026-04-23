@@ -443,24 +443,4 @@ client.onConnectionStateChanged((state) => {
   read: (workspaceId: string, relPath: string) => ipcRenderer.invoke('plans:read', workspaceId, relPath),
 }
 
-// Plan lifecycle IPC (this sub-project — branch, validate, merge, changelog)
-;(api as ElectronAPI).plansLifecycle = {
-  createBranch: (workspaceId: string, planRel: string, args: { branchName: string; mode: 'worktree' | 'inline'; baseBranch: string }) =>
-    ipcRenderer.invoke('plans:create-branch', workspaceId, planRel, args),
-  listBranches: (workspaceId: string) => ipcRenderer.invoke('plans:list-branches', workspaceId),
-  startValidation: (workspaceId: string, planRel: string) =>
-    ipcRenderer.invoke('plans:start-validation', workspaceId, planRel),
-  markValidated: (workspaceId: string, planRel: string, summary: string) =>
-    ipcRenderer.invoke('plans:mark-validated', workspaceId, planRel, summary),
-  merge: (workspaceId: string, planRel: string, args: {
-    baseBranch: string
-    strategy: 'squash' | 'fast-forward'
-    subject: string
-    body: string
-    deleteBranchAfter: boolean
-    deleteWorktreeAfter: boolean
-    appendChangelog: boolean
-  }) => ipcRenderer.invoke('plans:merge', workspaceId, planRel, args),
-}
-
 contextBridge.exposeInMainWorld('electronAPI', api)

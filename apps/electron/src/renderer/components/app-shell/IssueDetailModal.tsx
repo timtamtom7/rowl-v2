@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Circle, Clock, CheckCircle, Trash2, PlayCircle } from "lucide-react"
 import {
@@ -12,10 +12,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { Issue, IssueStatus, IssuePriority } from "@craft-agent/shared/issues"
 import { cn } from "@/lib/utils"
-import { PlanStateBadge } from '@/components/plans/PlanStateBadge'
-import { BranchCreationDialog } from '@/components/plans/BranchCreationDialog'
-import { ValidationModal } from '@/components/plans/ValidationModal'
-import { MergeConfirmationModal } from '@/components/plans/MergeConfirmationModal'
 
 interface IssueDetailModalProps {
   issue: Issue
@@ -65,33 +61,6 @@ export function IssueDetailModal({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [attachments, setAttachments] = useState<string[]>(issue.attachments ?? [])
   const [inlineError, setInlineError] = useState<string | null>(null)
-
-  const [planMeta, setPlanMeta] = useState<Record<string, import('@craft-agent/shared/plans').PlanFrontmatter>>({})
-  const [existingBranches, setExistingBranches] = useState<string[]>([])
-  const [branchDialogPlan, setBranchDialogPlan] = useState<string | null>(null)
-  const [validateDialogPlan, setValidateDialogPlan] = useState<string | null>(null)
-  const [mergeDialogPlan, setMergeDialogPlan] = useState<string | null>(null)
-
-  const refreshPlans = useCallback(async () => {
-    const next: Record<string, import('@craft-agent/shared/plans').PlanFrontmatter> = {}
-    for (const path of issue.linkedPlanPaths) {
-      const res = await window.electronAPI.plans.read(workspaceId, path)
-      if (res) next[path] = res.frontmatter
-    }
-    setPlanMeta(next)
-  }, [issue.linkedPlanPaths, workspaceId])
-
-  useEffect(() => { void refreshPlans() }, [refreshPlans])
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        setExistingBranches(await window.electronAPI.plansLifecycle.listBranches(workspaceId))
-      } catch {
-        setExistingBranches([])
-      }
-    })()
-  }, [workspaceId])
 
   async function insertAttachment(file: File) {
     if (file.size > 10 * 1024 * 1024) {
@@ -261,42 +230,17 @@ export function IssueDetailModal({
             <div className="space-y-1">
               <div className="text-xs font-medium text-muted-foreground">Linked plans</div>
               <ul className="text-sm space-y-1">
-                {issue.linkedPlanPaths.map((p) => {
-                  const fm = planMeta[p]
-                  return (
-                    <li key={p} className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        className="underline text-left hover:text-primary"
-                        onClick={() => onOpenPlan(p)}
-                      >
-                        {p.split("/").pop()}
-                      </button>
-                      {fm && <PlanStateBadge state={fm.state} />}
-                      {fm && fm.state === 'accepted' && (
-                        <Button size="sm" variant="outline" onClick={() => setBranchDialogPlan(p)}>
-                          Create branch
-                        </Button>
-                      )}
-                      {fm && fm.state === 'in-progress' && (
-                        <>
-                          {fm.branchName && <code className="text-xs bg-muted px-1 rounded">{fm.branchName}</code>}
-                          <Button size="sm" variant="outline" onClick={() => setValidateDialogPlan(p)}>
-                            Validate
-                          </Button>
-                        </>
-                      )}
-                      {fm && fm.state === 'validated' && (
-                        <Button size="sm" variant="default" onClick={() => setMergeDialogPlan(p)}>
-                          Merge
-                        </Button>
-                      )}
-                      {fm && fm.state === 'merged' && fm.mergeCommitSha && (
-                        <code className="text-xs bg-muted px-1 rounded">{fm.mergeCommitSha}</code>
-                      )}
-                    </li>
-                  )
-                })}
+                {issue.linkedPlanPaths.map((p) => (
+                  <li key={p}>
+                    <button
+                      type="button"
+                      className="underline text-left hover:text-primary"
+                      onClick={() => onOpenPlan(p)}
+                    >
+                      {p.split("/").pop()}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
           )}
@@ -364,42 +308,6 @@ export function IssueDetailModal({
             </>
           )}
         </DialogFooter>
-
-        {branchDialogPlan && planMeta[branchDialogPlan] && (
-          <BranchCreationDialog
-            open
-            onOpenChange={(o) => { if (!o) setBranchDialogPlan(null) }}
-            workspaceId={workspaceId}
-            planRel={branchDialogPlan}
-            plan={planMeta[branchDialogPlan]}
-            existingBranches={existingBranches}
-            defaultBranchMode="worktree"
-            defaultBaseBranch="main"
-            onCreated={() => { void refreshPlans() }}
-          />
-        )}
-        {validateDialogPlan && (
-          <ValidationModal
-            open
-            onOpenChange={(o) => { if (!o) setValidateDialogPlan(null) }}
-            workspaceId={workspaceId}
-            planRel={validateDialogPlan}
-            onValidated={() => { void refreshPlans() }}
-          />
-        )}
-        {mergeDialogPlan && planMeta[mergeDialogPlan] && (
-          <MergeConfirmationModal
-            open
-            onOpenChange={(o) => { if (!o) setMergeDialogPlan(null) }}
-            workspaceId={workspaceId}
-            planRel={mergeDialogPlan}
-            plan={planMeta[mergeDialogPlan]}
-            defaultBaseBranch="main"
-            defaultStrategy="squash"
-            defaultAppendChangelog={true}
-            onMerged={() => { void refreshPlans() }}
-          />
-        )}
       </DialogContent>
     </Dialog>
   )

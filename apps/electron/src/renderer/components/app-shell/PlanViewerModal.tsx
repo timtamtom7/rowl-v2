@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import type { PlanFrontmatter } from '@craft-agent/shared/plans'
 
 interface PlanViewerModalProps {
   workspaceId: string
@@ -12,7 +11,13 @@ interface PlanViewerModalProps {
 }
 
 interface PlanData {
-  frontmatter: PlanFrontmatter
+  frontmatter: {
+    issueId: string | null
+    issueSlug: string | null
+    sessionId: string
+    acceptedAt: string
+    planVersion: number
+  }
   body: string
 }
 
@@ -29,7 +34,7 @@ export function PlanViewerModal({
 
   useEffect(() => {
     ;(async () => {
-      const data = await window.electronAPI.plans.read(workspaceId, workspaceRelativePath) as PlanData | null
+      const data = await window.electronAPI.plans.read(workspaceId, workspaceRelativePath)
       setPlan(data)
       if (data) {
         setSessionExists(await sessionExistsCheck(data.frontmatter.sessionId))
@@ -49,7 +54,7 @@ export function PlanViewerModal({
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>
-            {plan.frontmatter.title} (v{plan.frontmatter.planVersion}) — {new Date(plan.frontmatter.acceptedAt).toLocaleString()}
+            Plan v{plan.frontmatter.planVersion} — {new Date(plan.frontmatter.acceptedAt).toLocaleString()}
           </DialogTitle>
         </DialogHeader>
         <pre className="whitespace-pre-wrap font-mono text-sm max-h-[60vh] overflow-auto p-3 bg-muted/20 rounded">

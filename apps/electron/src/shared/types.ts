@@ -677,43 +677,28 @@ export interface ElectronAPI {
     writeAttachment(workspaceId: string, issueId: string, ext: string, bytes: Uint8Array): Promise<{ path: string; hash: string }>
   }
 
-  // Plan pipeline — shipped Issue→Plan IPC
+  // Plan pipeline (Task 8)
   plans: {
     copyForward(workspaceId: string, sessionPlanPath: string, sessionId: string, issueId: string | undefined): Promise<string>
     list(workspaceId: string): Promise<Array<{
       workspaceRelativePath: string
-      frontmatter: import('@craft-agent/shared/plans').PlanFrontmatter
+      issueId: string | null
+      issueSlug: string | null
+      sessionId: string
+      acceptedAt: string
+      planVersion: number
     }>>
     read(workspaceId: string, relPath: string): Promise<{
-      frontmatter: import('@craft-agent/shared/plans').PlanFrontmatter
+      frontmatter: {
+        workspaceRelativePath: string
+        issueId: string | null
+        issueSlug: string | null
+        sessionId: string
+        acceptedAt: string
+        planVersion: number
+      }
       body: string
-      workspaceRelativePath: string
     } | null>
-  }
-
-  // Plan lifecycle (this sub-project)
-  plansLifecycle: {
-    createBranch(
-      workspaceId: string,
-      planRel: string,
-      args: { branchName: string; mode: 'worktree' | 'inline'; baseBranch: string },
-    ): Promise<{ branchName: string; worktreePath: string | null }>
-    listBranches(workspaceId: string): Promise<string[]>
-    startValidation(workspaceId: string, planRel: string): Promise<{ draft: string }>
-    markValidated(workspaceId: string, planRel: string, summary: string): Promise<{ ok: true }>
-    merge(
-      workspaceId: string,
-      planRel: string,
-      args: {
-        baseBranch: string
-        strategy: 'squash' | 'fast-forward'
-        subject: string
-        body: string
-        deleteBranchAfter: boolean
-        deleteWorktreeAfter: boolean
-        appendChangelog: boolean
-      },
-    ): Promise<{ mergeCommitSha: string; cleanupWarnings: string[] }>
   }
 }
 

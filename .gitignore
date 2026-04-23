@@ -55,14 +55,8 @@ __pycache__/
 # Lock files from other package managers
 pnpm-lock.yaml
 
-# Craft Agent local data (sessions, credentials, config).
-# Anchored to repo root; we re-include /plans because committed plans are the
-# audit trail that feeds the roadmap (see docs/superpowers/specs/2026-04-23-plan-execute-merge-changelog-design.md).
-/.craft-agent/*
-!/.craft-agent/plans/
-
-# Worktrees created by the plan → branch pipeline. Always local scratch.
-/.worktrees/
+# Craft Agent local data (sessions, credentials, config)
+.craft-agent/
 
 # Rowl-as-workspace runtime state — generated when this repo is opened as a
 # workspace in Rowl itself (eat-your-own-dogfood). These MUST NOT be committed

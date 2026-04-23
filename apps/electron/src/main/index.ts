@@ -75,7 +75,6 @@ import { registerAllRpcHandlers } from './handlers/index'
 import { registerCoreRpcHandlers, cleanupSessionFileWatchForClient } from '@craft-agent/server-core/handlers/rpc'
 import { registerIssuesIpc } from './ipc/issues-ipc'
 import { registerPlansIpc } from './ipc/plans-ipc'
-import { registerPlanLifecycleIpc } from './ipc/plan-lifecycle-ipc'
 import type { PlatformServices } from '../runtime/platform'
 import { createElectronPlatform } from './platform'
 import type { HandlerDeps } from './handlers/handler-deps'
@@ -685,7 +684,6 @@ app.whenReady().then(async () => {
       // Issue + plan pipeline IPC (Task 8 of issue → plan pipeline)
       registerIssuesIpc()
       registerPlansIpc()
-      registerPlanLifecycleIpc()
 
       // Cross-server RPC — invoke a channel on an arbitrary remote server
       ipcMain.handle('server:invokeOnServer', async (_event, url: string, token: string, channel: string, ...args: unknown[]) => {

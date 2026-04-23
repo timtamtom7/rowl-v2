@@ -50,18 +50,6 @@ export interface WorkspaceConfig {
     colorTheme?: string; // Color theme override for this workspace (preset ID). Undefined = inherit from app default.
     /** Workspace-relative path for copy-forwarded plan artifacts. Default: 'docs/plans'. */
     planStoragePath?: string;
-
-    /** Default mode for new branches created from plans. Default: 'worktree'. */
-    branchMode?: 'worktree' | 'inline';
-
-    /** Default merge strategy. Default: 'squash'. */
-    mergeStrategy?: 'squash' | 'fast-forward';
-
-    /** Default base branch for merges. Default: 'main'. */
-    defaultBaseBranch?: string;
-
-    /** Whether to auto-prepend changelog entries on merge. Default: true. */
-    autoChangelog?: boolean;
   };
 
   /**

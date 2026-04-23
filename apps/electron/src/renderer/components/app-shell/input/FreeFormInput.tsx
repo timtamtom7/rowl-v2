@@ -629,9 +629,6 @@ export function FreeFormInput({
             sessionId,
             linkedIssueId,
           )
-          window.dispatchEvent(new CustomEvent('craft:plan-accepted', {
-            detail: { sessionId, workspaceRelativePath: rel },
-          }))
           if (linkedIssueId) {
             const issue = await window.electronAPI.issues.read(workspaceId, linkedIssueId)
             if (issue) {
@@ -690,9 +687,6 @@ export function FreeFormInput({
             sessionId,
             linkedIssueId,
           )
-          window.dispatchEvent(new CustomEvent('craft:plan-accepted', {
-            detail: { sessionId, workspaceRelativePath: rel },
-          }))
           if (linkedIssueId) {
             const issue = await window.electronAPI.issues.read(workspaceId, linkedIssueId)
             if (issue) {

@@ -74,7 +74,6 @@ import { CHAT_LAYOUT } from "@/config/layout"
 import { collectFileChangesFromActivities, getFirstFileChangeIdForActivity } from "@/lib/file-changes"
 import { resolveBranchNewPanelOption } from "./branching"
 import { handleErrorMessageAction } from "./error-message-actions"
-import { AcceptPlanBanner } from "./AcceptPlanBanner"
 
 // ============================================================================
 // CSS Custom Highlight API helper
@@ -1904,10 +1903,6 @@ export const ChatDisplay = React.forwardRef<ChatDisplayHandle, ChatDisplayProps>
               </ScrollArea>
             </div>
           </div>
-
-          {session?.id && workspaceId && (
-            <AcceptPlanBanner sessionId={session.id} workspaceId={workspaceId} />
-          )}
 
           {/* === INPUT CONTAINER: FreeForm or Structured Input === */}
           <ChatInputZone

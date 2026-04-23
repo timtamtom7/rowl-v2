@@ -60,16 +60,6 @@ describe('copyPlanForward', () => {
       sessionId: 'sess-1',
       acceptedAt: '2026-04-22T15:12:00.000Z',
       planVersion: 1,
-      state: 'accepted',
-      title: 'Add Letta memory sync',
-      type: 'feat',
-      branchName: null,
-      worktreePath: null,
-      inProgressAt: null,
-      validatedAt: null,
-      validationSummary: null,
-      mergedAt: null,
-      mergeCommitSha: null,
     });
     expect(parsed.content.trim()).toBe('# Plan body\n\nDo the thing.');
   });
