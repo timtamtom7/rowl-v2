@@ -677,27 +677,17 @@ export interface ElectronAPI {
     writeAttachment(workspaceId: string, issueId: string, ext: string, bytes: Uint8Array): Promise<{ path: string; hash: string }>
   }
 
-  // Plan pipeline (Task 8)
+  // Plan pipeline — shipped Issue→Plan IPC
   plans: {
     copyForward(workspaceId: string, sessionPlanPath: string, sessionId: string, issueId: string | undefined): Promise<string>
     list(workspaceId: string): Promise<Array<{
       workspaceRelativePath: string
-      issueId: string | null
-      issueSlug: string | null
-      sessionId: string
-      acceptedAt: string
-      planVersion: number
+      frontmatter: import('@craft-agent/shared/plans').PlanFrontmatter
     }>>
     read(workspaceId: string, relPath: string): Promise<{
-      frontmatter: {
-        workspaceRelativePath: string
-        issueId: string | null
-        issueSlug: string | null
-        sessionId: string
-        acceptedAt: string
-        planVersion: number
-      }
+      frontmatter: import('@craft-agent/shared/plans').PlanFrontmatter
       body: string
+      workspaceRelativePath: string
     } | null>
   }
 }

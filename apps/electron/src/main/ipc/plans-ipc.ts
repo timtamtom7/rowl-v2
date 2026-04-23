@@ -2,7 +2,6 @@ import { ipcMain } from 'electron'
 import { readFileSync } from 'fs'
 import { glob } from 'glob'
 import { join, relative, resolve, sep } from 'path'
-import matter from 'gray-matter'
 import type { Issue } from '@craft-agent/shared/issues'
 import {
   copyPlanForward,
@@ -10,6 +9,8 @@ import {
 } from '@craft-agent/shared/issues/node'
 import { getWorkspaceByNameOrId } from '@craft-agent/shared/config'
 import { loadWorkspaceConfig } from '@craft-agent/shared/workspaces'
+import { parsePlanFile } from '@craft-agent/shared/plans/node'
+import type { PlanFrontmatter } from '@craft-agent/shared/plans'
 
 function assertWithinWorkspace(rootPath: string, candidateAbs: string): string {
   const normalizedRoot = resolve(rootPath)
@@ -21,12 +22,8 @@ function assertWithinWorkspace(rootPath: string, candidateAbs: string): string {
 }
 
 export interface PlanListEntry {
-  workspaceRelativePath: string
-  issueId: string | null
-  issueSlug: string | null
-  sessionId: string
-  acceptedAt: string
-  planVersion: number
+  workspaceRelativePath: string;
+  frontmatter: PlanFrontmatter;
 }
 
 function resolveWorkspace(workspaceId: string): { rootPath: string; planStoragePath: string } {
@@ -77,21 +74,19 @@ export function registerPlansIpc(): void {
     const entries: PlanListEntry[] = []
     for (const abs of files) {
       try {
-        const content = readFileSync(abs, 'utf-8')
-        const fm = matter(content).data as Record<string, unknown>
+        const text = readFileSync(abs, 'utf-8')
+        const { frontmatter } = parsePlanFile(text)
         entries.push({
           workspaceRelativePath: relative(rootPath, abs).split('\\').join('/'),
-          issueId: (fm.issueId as string | null) ?? null,
-          issueSlug: (fm.issueSlug as string | null) ?? null,
-          sessionId: String(fm.sessionId ?? ''),
-          acceptedAt: String(fm.acceptedAt ?? ''),
-          planVersion: Number(fm.planVersion ?? 1),
+          frontmatter,
         })
       } catch (err) {
         console.warn(`[plans-ipc] Skipped ${abs}: ${(err as Error).message}`)
       }
     }
-    return entries.sort((a, b) => b.acceptedAt.localeCompare(a.acceptedAt))
+    return entries.sort((a, b) =>
+      b.frontmatter.acceptedAt.localeCompare(a.frontmatter.acceptedAt),
+    )
   })
 
   ipcMain.handle(
@@ -100,22 +95,13 @@ export function registerPlansIpc(): void {
       _e,
       workspaceId: string,
       workspaceRelativePath: string,
-    ): Promise<{ frontmatter: PlanListEntry; body: string } | null> => {
+    ): Promise<{ frontmatter: PlanFrontmatter; body: string; workspaceRelativePath: string } | null> => {
       const { rootPath } = resolveWorkspace(workspaceId)
       const abs = assertWithinWorkspace(rootPath, join(rootPath, workspaceRelativePath))
       try {
         const text = readFileSync(abs, 'utf-8')
-        const parsed = matter(text)
-        const fm = parsed.data as Record<string, unknown>
-        const frontmatter: PlanListEntry = {
-          workspaceRelativePath,
-          issueId: (fm.issueId as string | null) ?? null,
-          issueSlug: (fm.issueSlug as string | null) ?? null,
-          sessionId: String(fm.sessionId ?? ''),
-          acceptedAt: String(fm.acceptedAt ?? ''),
-          planVersion: Number(fm.planVersion ?? 1),
-        }
-        return { frontmatter, body: parsed.content }
+        const { frontmatter, body } = parsePlanFile(text)
+        return { frontmatter, body, workspaceRelativePath }
       } catch {
         return null
       }
