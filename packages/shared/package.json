@@ -27,6 +27,8 @@
     "./credentials": "./src/credentials/index.ts",
     "./mcp": "./src/mcp/index.ts",
     "./memory": "./src/memory/index.ts",
+    "./plans": "./src/plans/index.ts",
+    "./plans/node": "./src/plans/node.ts",
     "./prompts": "./src/prompts/index.ts",
     "./sessions": "./src/sessions/index.ts",
     "./sources": "./src/sources/index.ts",
