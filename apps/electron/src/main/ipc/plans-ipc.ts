@@ -33,7 +33,7 @@ function resolveWorkspace(workspaceId: string): { rootPath: string; planStorageP
   const ws = getWorkspaceByNameOrId(workspaceId)
   if (!ws) throw new Error(`Workspace not found: ${workspaceId}`)
   const wsConfig = loadWorkspaceConfig(ws.rootPath)
-  const planStoragePath = wsConfig?.defaults?.planStoragePath ?? 'docs/plans'
+  const planStoragePath = wsConfig?.defaults?.planStoragePath ?? '.craft-agent/plans'
   return { rootPath: ws.rootPath, planStoragePath }
 }
 
