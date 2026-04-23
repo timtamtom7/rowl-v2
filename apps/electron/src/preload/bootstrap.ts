@@ -447,6 +447,7 @@ client.onConnectionStateChanged((state) => {
 ;(api as ElectronAPI).plansLifecycle = {
   createBranch: (workspaceId: string, planRel: string, args: { branchName: string; mode: 'worktree' | 'inline'; baseBranch: string }) =>
     ipcRenderer.invoke('plans:create-branch', workspaceId, planRel, args),
+  listBranches: (workspaceId: string) => ipcRenderer.invoke('plans:list-branches', workspaceId),
   startValidation: (workspaceId: string, planRel: string) =>
     ipcRenderer.invoke('plans:start-validation', workspaceId, planRel),
   markValidated: (workspaceId: string, planRel: string, summary: string) =>

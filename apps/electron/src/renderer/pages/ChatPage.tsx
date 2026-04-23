@@ -24,6 +24,12 @@ import { navigate, routes } from '@/lib/navigate'
 import { ensureSessionMessagesLoadedAtom, loadedSessionsAtom, sessionMetaMapAtom } from '@/atoms/sessions'
 import { getSessionTitle } from '@/utils/session'
 import type { Issue } from '@craft-agent/shared/issues'
+import { useSessionPlanChip } from '@/hooks/useSessionPlanChip'
+import { PlanStateBadge } from '@/components/plans/PlanStateBadge'
+import { BranchCreationDialog } from '@/components/plans/BranchCreationDialog'
+import { ValidationModal } from '@/components/plans/ValidationModal'
+import { MergeConfirmationModal } from '@/components/plans/MergeConfirmationModal'
+import { Button } from '@/components/ui/button'
 // Model resolution: connection.defaultModel (no hardcoded defaults)
 import { resolveEffectiveConnectionSlug, isSessionConnectionUnavailable } from '@config/llm-connections'
 
@@ -86,6 +92,9 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
 
   // Use per-session atom for isolated updates
   const session = useSessionData(sessionId)
+
+  const { plan, planRel, branches, refresh } = useSessionPlanChip(activeWorkspaceId, sessionId)
+  const [dialog, setDialog] = React.useState<'branch' | 'validate' | 'merge' | null>(null)
 
   // Track if messages are loaded for this session (for lazy loading)
   const loadedSessions = useAtomValue(loadedSessionsAtom)
@@ -585,16 +594,37 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
           actions={headerActions}
           rightSidebarButton={rightSidebarButton}
           isRegeneratingTitle={isAsyncOperationOngoing}
-          badge={linkedIssue === 'deleted' ? (
-            <span className="text-xs text-muted-foreground/60 italic">Issue deleted</span>
-          ) : linkedIssue ? (
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 titlebar-no-drag"
-              onClick={() => navigate(routes.view.issues(linkedIssue.id))}
-            >
-              Working on Issue: <span className="font-medium">{linkedIssue.title}</span>
-            </button>
-          ) : undefined}
+          badge={(
+            <div className="flex items-center gap-2">
+              {linkedIssue === 'deleted' ? (
+                <span className="text-xs text-muted-foreground/60 italic">Issue deleted</span>
+              ) : linkedIssue ? (
+                <button
+                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 titlebar-no-drag"
+                  onClick={() => navigate(routes.view.issues(linkedIssue.id))}
+                >
+                  Working on Issue: <span className="font-medium">{linkedIssue.title}</span>
+                </button>
+              ) : undefined}
+              {plan && planRel && (
+                <div className="flex items-center gap-1 text-xs">
+                  <PlanStateBadge state={plan.state} />
+                  {plan.state === 'accepted' && (
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => setDialog('branch')}>Create branch</Button>
+                  )}
+                  {plan.state === 'in-progress' && plan.branchName && (
+                    <>
+                      <code className="bg-muted px-1 rounded text-[10px]">{plan.branchName}</code>
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => setDialog('validate')}>Validate</Button>
+                    </>
+                  )}
+                  {plan.state === 'validated' && (
+                    <Button size="sm" variant="default" className="h-6 px-2 text-[10px]" onClick={() => setDialog('merge')}>Merge</Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         />
             <div className="flex-1 flex flex-col min-h-0">
               <ChatDisplay
@@ -662,7 +692,45 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
   return (
     <>
       <div className="h-full flex flex-col">
-        <PanelHeader  title={displayTitle} titleMenu={titleMenu} leadingAction={leadingAction} actions={headerActions} rightSidebarButton={rightSidebarButton} isRegeneratingTitle={isAsyncOperationOngoing} />
+        <PanelHeader
+          title={displayTitle}
+          titleMenu={titleMenu}
+          leadingAction={leadingAction}
+          actions={headerActions}
+          rightSidebarButton={rightSidebarButton}
+          isRegeneratingTitle={isAsyncOperationOngoing}
+          badge={(
+            <div className="flex items-center gap-2">
+              {linkedIssue === 'deleted' ? (
+                <span className="text-xs text-muted-foreground/60 italic">Issue deleted</span>
+              ) : linkedIssue ? (
+                <button
+                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 titlebar-no-drag"
+                  onClick={() => navigate(routes.view.issues(linkedIssue.id))}
+                >
+                  Working on Issue: <span className="font-medium">{linkedIssue.title}</span>
+                </button>
+              ) : undefined}
+              {plan && planRel && (
+                <div className="flex items-center gap-1 text-xs">
+                  <PlanStateBadge state={plan.state} />
+                  {plan.state === 'accepted' && (
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => setDialog('branch')}>Create branch</Button>
+                  )}
+                  {plan.state === 'in-progress' && plan.branchName && (
+                    <>
+                      <code className="bg-muted px-1 rounded text-[10px]">{plan.branchName}</code>
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => setDialog('validate')}>Validate</Button>
+                    </>
+                  )}
+                  {plan.state === 'validated' && (
+                    <Button size="sm" variant="default" className="h-6 px-2 text-[10px]" onClick={() => setDialog('merge')}>Merge</Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        />
         <div className="flex-1 flex flex-col min-h-0">
           <ChatDisplay
             ref={chatDisplayRef}
@@ -717,6 +785,41 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
         onSubmit={handleRenameSubmit}
         placeholder={t('chat.enterSessionName')}
       />
+      {dialog === 'branch' && plan && planRel && (
+        <BranchCreationDialog
+          open
+          onOpenChange={(o) => { if (!o) setDialog(null) }}
+          workspaceId={activeWorkspaceId!}
+          planRel={planRel}
+          plan={plan}
+          existingBranches={branches}
+          defaultBranchMode="worktree"
+          defaultBaseBranch="main"
+          onCreated={() => { void refresh() }}
+        />
+      )}
+      {dialog === 'validate' && planRel && (
+        <ValidationModal
+          open
+          onOpenChange={(o) => { if (!o) setDialog(null) }}
+          workspaceId={activeWorkspaceId!}
+          planRel={planRel}
+          onValidated={() => { void refresh() }}
+        />
+      )}
+      {dialog === 'merge' && plan && planRel && (
+        <MergeConfirmationModal
+          open
+          onOpenChange={(o) => { if (!o) setDialog(null) }}
+          workspaceId={activeWorkspaceId!}
+          planRel={planRel}
+          plan={plan}
+          defaultBaseBranch="main"
+          defaultStrategy="squash"
+          defaultAppendChangelog={true}
+          onMerged={() => { void refresh() }}
+        />
+      )}
     </>
   )
 })

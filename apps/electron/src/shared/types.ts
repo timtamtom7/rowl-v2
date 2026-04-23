@@ -698,6 +698,7 @@ export interface ElectronAPI {
       planRel: string,
       args: { branchName: string; mode: 'worktree' | 'inline'; baseBranch: string },
     ): Promise<{ branchName: string; worktreePath: string | null }>
+    listBranches(workspaceId: string): Promise<string[]>
     startValidation(workspaceId: string, planRel: string): Promise<{ draft: string }>
     markValidated(workspaceId: string, planRel: string, summary: string): Promise<{ ok: true }>
     merge(

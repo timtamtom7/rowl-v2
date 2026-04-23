@@ -16,6 +16,7 @@ import {
   mergePlan,
 } from '../git/plan-git-flow.ts'
 import type { BranchMode, MergeStrategy } from '../git/plan-git-flow.ts'
+import { listBranches } from '../git/git-commands.ts'
 
 interface ResolveResult {
   rootPath: string
@@ -140,4 +141,9 @@ export function registerPlanLifecycleIpc(): void {
       return result
     },
   )
+
+  ipcMain.handle('plans:list-branches', async (_e, workspaceId: string): Promise<string[]> => {
+    const { rootPath } = resolveWorkspace(workspaceId)
+    return listBranches(rootPath)
+  })
 }
