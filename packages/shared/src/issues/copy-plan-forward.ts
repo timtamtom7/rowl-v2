@@ -5,6 +5,7 @@ import type { Issue } from './types.ts';
 import { slugify } from './slug.ts';
 import { formatTimestamp } from './timestamp.ts';
 import { normalizePath } from '../utils/paths.ts';
+import type { PlanFrontmatter } from '../plans/types.ts';
 
 export interface CopyPlanForwardInput {
   sessionPlanPath: string;        // absolute
@@ -14,14 +15,6 @@ export interface CopyPlanForwardInput {
   planStoragePath: string;        // workspace-relative, e.g. 'docs/plans'
   now?: Date;                     // override for tests
   tz?: 'UTC' | 'local';           // override for tests
-}
-
-export interface PlanFrontmatter {
-  issueId: string | null;
-  issueSlug: string | null;
-  sessionId: string;
-  acceptedAt: string;
-  planVersion: number;
 }
 
 /**
@@ -58,10 +51,20 @@ export async function copyPlanForward(input: CopyPlanForwardInput): Promise<stri
   const body = readFileSync(sessionPlanPath, 'utf-8');
   const fm: PlanFrontmatter = {
     issueId: issue?.id ?? null,
-    issueSlug: slug,
+    issueSlug: issue ? slug : null,
     sessionId,
     acceptedAt: now.toISOString(),
     planVersion: version,
+    state: 'accepted',
+    title: issue?.title ?? (slug ?? 'Untitled plan'),
+    type: 'feat',
+    branchName: null,
+    worktreePath: null,
+    inProgressAt: null,
+    validatedAt: null,
+    validationSummary: null,
+    mergedAt: null,
+    mergeCommitSha: null,
   };
   const output = matter.stringify(stripExistingFrontmatter(body), fm);
 
