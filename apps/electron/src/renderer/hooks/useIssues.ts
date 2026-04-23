@@ -5,6 +5,29 @@ import { createIssue, generateIssueId } from '@craft-agent/shared/issues';
 const LEGACY_LS_KEY = 'craft-agent-issues';
 const MIGRATION_PROMPT_KEY = 'craft-agent-issues-migration-prompted';
 
+function lsKey(workspaceId: string): string {
+  return `craft-agent-issues-v2:${workspaceId}`;
+}
+
+function readLocalStorageIssues(workspaceId: string): Issue[] {
+  try {
+    const raw = localStorage.getItem(lsKey(workspaceId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as Issue[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalStorageIssues(workspaceId: string, issues: Issue[]): void {
+  try {
+    localStorage.setItem(lsKey(workspaceId), JSON.stringify(issues));
+  } catch {
+    // localStorage is best-effort (quota exceeded, etc.)
+  }
+}
+
 export interface UseIssuesResult {
   issues: Issue[];
   loading: boolean;
@@ -31,14 +54,21 @@ export function useIssues(workspaceId: string | null): UseIssuesResult {
   const [loading, setLoading] = useState(true);
   const [migrationPending, setMigrationPending] = useState<number | null>(null);
 
+  const setIssuesAndSync = useCallback((next: Issue[]) => {
+    setIssues(next);
+    if (workspaceId) {
+      writeLocalStorageIssues(workspaceId, next);
+    }
+  }, [workspaceId]);
+
   const refresh = useCallback(async () => {
     if (!workspaceId) {
-      setIssues([]);
+      setIssuesAndSync([]);
       return;
     }
     const list = await window.electronAPI.issues.list(workspaceId);
-    setIssues(list);
-  }, [workspaceId]);
+    setIssuesAndSync(list);
+  }, [workspaceId, setIssuesAndSync]);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,7 +95,7 @@ export function useIssues(workspaceId: string | null): UseIssuesResult {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true };
   }, [refresh, workspaceId]);
 
   const addIssue = useCallback<UseIssuesResult['addIssue']>(async (title, options) => {
@@ -73,9 +103,10 @@ export function useIssues(workspaceId: string | null): UseIssuesResult {
     const base = createIssue(title, options);
     const issue: Issue = { ...base, id: generateIssueId() };
     await window.electronAPI.issues.write(workspaceId, issue);
-    await refresh();
+    const list = await window.electronAPI.issues.list(workspaceId);
+    setIssuesAndSync(list);
     return issue;
-  }, [workspaceId, refresh]);
+  }, [workspaceId, setIssuesAndSync]);
 
   const updateIssue = useCallback<UseIssuesResult['updateIssue']>(async (id, updates) => {
     if (!workspaceId) return null;
@@ -87,9 +118,10 @@ export function useIssues(workspaceId: string | null): UseIssuesResult {
       updatedAt: new Date().toISOString(),
     };
     await window.electronAPI.issues.write(workspaceId, next);
-    await refresh();
+    const list = await window.electronAPI.issues.list(workspaceId);
+    setIssuesAndSync(list);
     return next;
-  }, [workspaceId, refresh]);
+  }, [workspaceId, setIssuesAndSync]);
 
   const updateIssueStatus = useCallback<UseIssuesResult['updateIssueStatus']>(async (id, status) => {
     return updateIssue(id, { status });
@@ -98,9 +130,10 @@ export function useIssues(workspaceId: string | null): UseIssuesResult {
   const deleteIssue = useCallback<UseIssuesResult['deleteIssue']>(async (id) => {
     if (!workspaceId) return false;
     await window.electronAPI.issues.delete(workspaceId, id);
-    await refresh();
+    const list = await window.electronAPI.issues.list(workspaceId);
+    setIssuesAndSync(list);
     return true;
-  }, [workspaceId, refresh]);
+  }, [workspaceId, setIssuesAndSync]);
 
   const getIssue = useCallback<UseIssuesResult['getIssue']>((id) => {
     return issues.find(i => i.id === id) ?? null;
@@ -166,9 +199,10 @@ export function useIssues(workspaceId: string | null): UseIssuesResult {
     }
 
     setMigrationPending(null);
-    await refresh();
+    const list = await window.electronAPI.issues.list(workspaceId);
+    setIssuesAndSync(list);
     return { migrated, failed };
-  }, [workspaceId, refresh]);
+  }, [workspaceId, setIssuesAndSync]);
 
   const dismissMigrationPrompt = useCallback(() => {
     localStorage.setItem(MIGRATION_PROMPT_KEY, 'dismissed');

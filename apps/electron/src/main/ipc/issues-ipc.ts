@@ -10,10 +10,10 @@ import {
 } from '@craft-agent/shared/issues/node'
 import { getWorkspaceByNameOrId } from '@craft-agent/shared/config'
 
-function resolveRoot(workspaceId: string): string {
+function resolveRootAndId(workspaceId: string): { rootPath: string; id: string } {
   const ws = getWorkspaceByNameOrId(workspaceId)
   if (!ws) throw new Error(`Workspace not found: ${workspaceId}`)
-  return ws.rootPath
+  return { rootPath: ws.rootPath, id: ws.id }
 }
 
 function sanitizeExt(ext: string): string {
@@ -30,25 +30,34 @@ function assertSafeId(id: string, label: string = 'id'): void {
  * Register issue-related IPC handlers on the main process.
  * Must be called after `app.whenReady()` (inside the same init scope as other
  * local `ipcMain.handle(...)` registrations).
+ *
+ * Every write/delete syncs to a backup JSON at
+ * ~/.craft-agent/issues-backup/{workspaceId}.json so issues survive
+ * filesystem wipes (git clean -fdx, .gitignore accidents, rm -rf, etc.).
+ * listIssues auto-restores from backup if the filesystem is empty.
  */
 export function registerIssuesIpc(): void {
   ipcMain.handle('issues:list', async (_e, workspaceId: string): Promise<Issue[]> => {
-    return listIssues(resolveRoot(workspaceId))
+    const { rootPath, id } = resolveRootAndId(workspaceId)
+    return listIssues(rootPath, id)
   })
 
   ipcMain.handle('issues:read', async (_e, workspaceId: string, issueId: string): Promise<Issue | null> => {
     assertSafeId(issueId, 'issueId')
-    return readIssue(resolveRoot(workspaceId), issueId)
+    const { rootPath } = resolveRootAndId(workspaceId)
+    return readIssue(rootPath, issueId)
   })
 
   ipcMain.handle('issues:write', async (_e, workspaceId: string, issue: Issue): Promise<void> => {
     assertSafeId(issue.id, 'issue.id')
-    writeIssue(resolveRoot(workspaceId), issue)
+    const { rootPath, id } = resolveRootAndId(workspaceId)
+    writeIssue(rootPath, id, issue)
   })
 
   ipcMain.handle('issues:delete', async (_e, workspaceId: string, issueId: string): Promise<void> => {
     assertSafeId(issueId, 'issueId')
-    deleteIssue(resolveRoot(workspaceId), issueId)
+    const { rootPath, id } = resolveRootAndId(workspaceId)
+    deleteIssue(rootPath, id, issueId)
   })
 
   ipcMain.handle(
@@ -66,7 +75,8 @@ export function registerIssuesIpc(): void {
       }
       const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 12)
       const filename = `${hash}.${sanitizeExt(ext)}`
-      const path = writeAttachment(resolveRoot(workspaceId), issueId, filename, bytes)
+      const { rootPath } = resolveRootAndId(workspaceId)
+      const path = writeAttachment(rootPath, issueId, filename, bytes)
       return { path, hash }
     },
   )
