@@ -5,9 +5,8 @@ import {
   Search,
   LayoutGrid,
   List as ListIcon,
-  Lightbulb,
-  Circle,
   CircleDot,
+  Circle,
   Clock,
   CheckCircle2,
   Archive,
@@ -29,7 +28,7 @@ type StatusFilter = "all" | "open" | IssueStatus
 type ViewMode = "list" | "grid"
 
 const STATUS_FILTERS: { key: StatusFilter; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: "all", label: "All", icon: Lightbulb },
+  { key: "all", label: "All", icon: CircleDot },
   { key: "open", label: "Open", icon: CircleDot },
   { key: "backlog", label: "Backlog", icon: Archive },
   { key: "todo", label: "Todo", icon: Circle },
@@ -178,7 +177,7 @@ export function IssuesPanel({ onOpenSession, workspaceId }: IssuesPanelProps) {
         <div className="flex items-end justify-between gap-3 mb-3">
           <div>
             <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-amber-500" />
+              <CircleDot className="h-5 w-5 text-white" />
               {t("sidebar.issues", "Issues")}
             </h1>
             <p className="text-xs text-muted-foreground mt-1">
@@ -273,7 +272,7 @@ export function IssuesPanel({ onOpenSession, workspaceId }: IssuesPanelProps) {
       {showCreate && (
         <div className="px-6 py-3 border-b border-border/40 bg-muted/20">
           <div className="flex gap-2 items-center">
-            <Lightbulb className="h-4 w-4 text-amber-500 shrink-0" />
+            <CircleDot className="h-4 w-4 text-white shrink-0" />
             <Input
               value={newIssueTitle}
               onChange={(e) => setNewIssueTitle(e.target.value)}
@@ -504,7 +503,7 @@ function EmptyState({ hasSearch, hasIssues, onCreate }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center px-6">
       <div className="h-16 w-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
-        <Lightbulb className="h-8 w-8 text-amber-500" />
+        <CircleDot className="h-8 w-8 text-white" />
       </div>
       <h3 className="text-base font-medium mb-1">
         {t("issues.emptyTitle", "Capture an idea")}
