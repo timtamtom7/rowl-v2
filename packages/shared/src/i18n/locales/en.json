@@ -270,6 +270,7 @@
   "git.committed": "Committed {{sha}}",
   "git.commitFailed": "Commit failed",
   "git.noChangesToCommit": "No changes to commit",
+  "git.commitChanges": "Commit changes",
   "git.changes": "Changes",
   "git.selectAll": "All",
   "git.selectNone": "None",

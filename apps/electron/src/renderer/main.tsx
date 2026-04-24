@@ -76,19 +76,40 @@ sentryInit(
  * Minimal fallback UI shown when the entire React tree crashes.
  * Sentry.ErrorBoundary captures the error and sends it to Sentry automatically.
  */
-function CrashFallback() {
-  return (
-    <div className="flex flex-col items-center justify-center h-screen font-sans text-foreground/50 gap-3">
-      <p className="text-base font-medium">Something went wrong</p>
-      <p className="text-[13px]">Please restart the app. The error has been reported.</p>
-      <button
-        onClick={() => window.location.reload()}
-        className="mt-2 px-4 py-1.5 rounded-md bg-background shadow-minimal text-[13px] text-foreground/70 cursor-pointer"
-      >
-        Reload
-      </button>
-    </div>
-  )
+class LoggingErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error }
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('[CRASH]', error)
+    console.error('[CRASH INFO]', info.componentStack)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen font-sans text-foreground/50 gap-3">
+          <p className="text-base font-medium">Something went wrong</p>
+          <p className="text-[13px] text-destructive max-w-md text-center whitespace-pre-wrap">
+            {this.state.error?.message || 'Unknown error'}
+          </p>
+          <pre className="text-[10px] text-muted-foreground max-w-lg max-h-[300px] overflow-auto p-2 bg-foreground/5 rounded">
+            {this.state.error?.stack || ''}
+          </pre>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-4 py-1.5 rounded-md bg-background shadow-minimal text-[13px] text-foreground/70 cursor-pointer"
+          >
+            Reload
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
 }
 
 /**
@@ -109,10 +130,10 @@ function Root() {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Sentry.ErrorBoundary fallback={<CrashFallback />}>
+    <LoggingErrorBoundary>
       <JotaiProvider>
         <Root />
       </JotaiProvider>
-    </Sentry.ErrorBoundary>
+    </LoggingErrorBoundary>
   </React.StrictMode>
 )

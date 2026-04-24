@@ -1,13 +1,13 @@
 import * as React from 'react'
-import { Check, FilePlus, FileEdit, Minus, Loader2, GitCommit } from 'lucide-react'
+import { Check, FilePlus, FileEdit, Loader2, GitCommit } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import type { GitDetailedStatus } from '@/hooks/useGit'
 
 const MENU_CONTAINER_STYLE =
-  'min-w-[360px] max-w-[480px] overflow-hidden rounded-[8px] bg-background text-foreground shadow-modal-small p-0'
+  'max-w-[520px] overflow-hidden rounded-[8px] bg-background text-foreground shadow-modal-small p-0'
 
 interface CommitPanelProps {
   open: boolean
@@ -76,7 +76,7 @@ export function CommitPanel({ open, onOpenChange, status, commit, diff, committi
       toast.success(t('git.committed', { sha: result.commitSha?.slice(0, 7) || '' }))
       setMessage('')
       setSelectedFiles(new Set())
-      setOpen(false)
+      onOpenChange(false)
     } else {
       toast.error(result.error || t('git.commitFailed'))
     }
@@ -89,16 +89,19 @@ export function CommitPanel({ open, onOpenChange, status, commit, diff, committi
   }
 
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverContent side="top" align="end" sideOffset={8} className={MENU_CONTAINER_STYLE}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent showCloseButton className={MENU_CONTAINER_STYLE}>
+        <DialogHeader className="px-4 pt-4 pb-2">
+          <DialogTitle className="text-sm font-medium">{t('git.commitChanges')}</DialogTitle>
+        </DialogHeader>
         {!hasChanges ? (
           <div className="px-4 py-6 text-center text-sm text-muted-foreground">
             {t('git.noChangesToCommit')}
           </div>
         ) : (
-          <div className="flex flex-col max-h-[480px]">
+          <div className="flex flex-col max-h-[60vh]">
             {/* Header */}
-            <div className="px-3 py-2 border-b border-border/50 flex items-center justify-between">
+            <div className="px-4 pb-2 border-b border-border/50 flex items-center justify-between">
               <span className="text-sm font-medium">{t('git.changes')}</span>
               <div className="flex gap-1">
                 <button type="button" onClick={selectAll} className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded hover:bg-foreground/5">
@@ -155,7 +158,7 @@ export function CommitPanel({ open, onOpenChange, status, commit, diff, committi
             )}
 
             {/* Commit message + button */}
-            <div className="border-t border-border/50 p-2 space-y-2">
+            <div className="border-t border-border/50 p-3 space-y-2">
               <input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -180,7 +183,7 @@ export function CommitPanel({ open, onOpenChange, status, commit, diff, committi
             </div>
           </div>
         )}
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   )
 }
