@@ -608,6 +608,9 @@ export interface ElectronAPI {
   }>
   commitGitChanges(dirPath: string, message: string, files?: string[]): Promise<{ success: boolean; error?: string; commitSha?: string }>
   getGitDiff(dirPath: string, filePath?: string): Promise<{ diff: string; error?: string }>
+  stageGitFiles(dirPath: string, files: string[]): Promise<{ success: boolean; error?: string }>
+  unstageGitFiles(dirPath: string, files: string[]): Promise<{ success: boolean; error?: string }>
+  discardGitFiles(dirPath: string, files: string[]): Promise<{ success: boolean; error?: string }>
 
   // Git Bash (Windows)
   checkGitBash(): Promise<GitBashStatus>

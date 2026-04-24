@@ -40,6 +40,11 @@ export interface UseGitResult {
   // Diff
   diff: (filePath?: string) => Promise<{ diff: string; error?: string }>
   diffLoading: boolean
+
+  // Stage / unstage / discard
+  stage: (files: string[]) => Promise<{ success: boolean; error?: string }>
+  unstage: (files: string[]) => Promise<{ success: boolean; error?: string }>
+  discard: (files: string[]) => Promise<{ success: boolean; error?: string }>
 }
 
 export function useGit(cwd: string | undefined): UseGitResult {
@@ -164,11 +169,48 @@ export function useGit(cwd: string | undefined): UseGitResult {
     }
   }, [])
 
+  const stage = useCallback(async (files: string[]) => {
+    const currentCwd = cwdRef.current
+    if (!currentCwd) return { success: false, error: 'No working directory set' }
+    try {
+      const result = await window.electronAPI?.stageGitFiles?.(currentCwd, files)
+      if (result?.success) { await refreshStatus() }
+      return result ?? { success: false, error: 'Git API not available' }
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Stage failed' }
+    }
+  }, [refreshStatus])
+
+  const unstage = useCallback(async (files: string[]) => {
+    const currentCwd = cwdRef.current
+    if (!currentCwd) return { success: false, error: 'No working directory set' }
+    try {
+      const result = await window.electronAPI?.unstageGitFiles?.(currentCwd, files)
+      if (result?.success) { await refreshStatus() }
+      return result ?? { success: false, error: 'Git API not available' }
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unstage failed' }
+    }
+  }, [refreshStatus])
+
+  const discard = useCallback(async (files: string[]) => {
+    const currentCwd = cwdRef.current
+    if (!currentCwd) return { success: false, error: 'No working directory set' }
+    try {
+      const result = await window.electronAPI?.discardGitFiles?.(currentCwd, files)
+      if (result?.success) { await refreshStatus() }
+      return result ?? { success: false, error: 'Git API not available' }
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Discard failed' }
+    }
+  }, [refreshStatus])
+
   return {
     branch, branches, isRepo, isClean, loading, error, refresh,
     checkoutBranch, createBranch,
     detailedStatus, statusLoading, refreshStatus,
     commit, committing,
     diff, diffLoading,
+    stage, unstage, discard,
   }
 }

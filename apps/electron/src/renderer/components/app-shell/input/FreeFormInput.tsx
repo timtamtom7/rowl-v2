@@ -2514,6 +2514,9 @@ function GitToolbar({
             commit={git.commit}
             diff={git.diff}
             committing={git.committing}
+            stage={git.stage}
+            unstage={git.unstage}
+            discard={git.discard}
           />
         </>
       )}

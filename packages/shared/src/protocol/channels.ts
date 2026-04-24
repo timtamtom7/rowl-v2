@@ -344,6 +344,9 @@ export const RPC_CHANNELS = {
     GET_DETAILED_STATUS: 'git:getDetailedStatus',
     COMMIT: 'git:commit',
     DIFF: 'git:diff',
+    STAGE: 'git:stage',
+    UNSTAGE: 'git:unstage',
+    DISCARD: 'git:discard',
   },
   gitbash: {
     CHECK: 'gitbash:check',

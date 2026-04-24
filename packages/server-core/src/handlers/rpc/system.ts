@@ -279,6 +279,36 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
     }
   })
 
+  // Stage files
+  server.handle(RPC_CHANNELS.git.STAGE, async (_ctx, dirPath: string, files: string[]) => {
+    try {
+      await git(dirPath).add(files)
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Stage failed' }
+    }
+  })
+
+  // Unstage files
+  server.handle(RPC_CHANNELS.git.UNSTAGE, async (_ctx, dirPath: string, files: string[]) => {
+    try {
+      await git(dirPath).reset(['HEAD', ...files])
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Unstage failed' }
+    }
+  })
+
+  // Discard changes (revert modified files to HEAD)
+  server.handle(RPC_CHANNELS.git.DISCARD, async (_ctx, dirPath: string, files: string[]) => {
+    try {
+      await git(dirPath).checkout(files)
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Discard failed' }
+    }
+  })
+
   // Git Bash detection and configuration (Windows only)
   server.handle(RPC_CHANNELS.gitbash.CHECK, async () => {
     const platform = process.platform as 'win32' | 'darwin' | 'linux'
