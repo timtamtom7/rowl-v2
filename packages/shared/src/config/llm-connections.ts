@@ -449,8 +449,9 @@ export function getModelsForProviderType(providerType: LlmProviderType, piAuthPr
  */
 export const PI_PREFERRED_DEFAULTS: Record<string, string[]> = {
   anthropic: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
-  openai: ['gpt-5.2', 'gpt-5.1', 'gpt-5', 'o4-mini', 'o3', 'gpt-4o'],
-  'openai-codex': ['gpt-5.2', 'gpt-5.1', 'gpt-5', 'o4-mini', 'o3', 'gpt-4o'],
+  openai: ['gpt-5.5', 'gpt-5.2', 'gpt-5.1', 'gpt-5', 'o4-mini', 'o3', 'gpt-4o'],
+  'openai-codex': ['gpt-5.5', 'gpt-5.2', 'gpt-5.1', 'gpt-5', 'o4-mini', 'o3', 'gpt-4o'],
+  deepseek: ['deepseek-v4-pro', 'deepseek-v4-flash'],
   // Flash-first: the *first* entry is used as the preflight test model in
   // testBackendConnection(). Preview / Pro models have much stricter
   // free-tier quotas and can exceed the 45s timeout, producing "Rate limit

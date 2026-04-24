@@ -182,6 +182,14 @@ export abstract class BaseAgent implements AgentBackend {
   protected _thinkingLevel: ThinkingLevel;
 
   // ============================================================
+  // Source activation restart state
+  // Set by activateSourceInSessionFn in SessionManager when source_test
+  // auto-enables an inactive source; consumed by backend event loops.
+  // ============================================================
+  protected _pendingSourceActivationRestart: { sourceSlug: string; userMessage: string } | null = null;
+  protected _currentTurnUserMessage: string | null = null;
+
+  // ============================================================
   // Core Modules (protected for subclass access)
   // ============================================================
   protected permissionManager: PermissionManager;
@@ -1036,6 +1044,24 @@ ${formattedMessages}
    */
   interruptForHandoff(reason: AbortReason): void {
     this.forceAbort(reason);
+  }
+
+  setPendingSourceActivationRestart(pending: { sourceSlug: string; userMessage: string }): void {
+    this._pendingSourceActivationRestart = pending;
+  }
+
+  consumePendingSourceActivationRestart(): { sourceSlug: string; userMessage: string } | null {
+    const pending = this._pendingSourceActivationRestart;
+    this._pendingSourceActivationRestart = null;
+    return pending;
+  }
+
+  getCurrentTurnUserMessage(): string | null {
+    return this._currentTurnUserMessage;
+  }
+
+  protected setCurrentTurnUserMessage(message: string | null): void {
+    this._currentTurnUserMessage = message;
   }
 
   /**

@@ -75,3 +75,30 @@ export function resolvePiModel(
 
   return undefined;
 }
+
+/**
+ * Returns true if the given model ID is denied for mini-completion use.
+ * Filters out models that are known to refuse or error in the mini-completion path.
+ */
+export function isDeniedMiniModelId(modelId: string, piAuthProvider?: string): boolean {
+  const bare = modelId.startsWith('pi/') ? modelId.slice(3) : modelId;
+  if (bare === 'codex-mini-latest') return true;
+  if (piAuthProvider === 'openai-codex' && bare.includes('codex-mini')) return true;
+  return false;
+}
+
+/**
+ * Returns true when an error message indicates the requested model is unavailable and a
+ * different model should be tried. Matches both the standard OpenAI "model not found"
+ * shapes and the ChatGPT-account Codex "… is not supported" refusal.
+ */
+export function isModelNotFoundError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('model_not_found') ||
+    normalized.includes('does not exist') ||
+    normalized.includes('no such model') ||
+    normalized.includes('is not supported') ||
+    (normalized.includes('requested model') && normalized.includes('not') && normalized.includes('exist'))
+  );
+}

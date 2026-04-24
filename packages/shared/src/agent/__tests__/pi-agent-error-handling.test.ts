@@ -225,7 +225,7 @@ describe('PiAgent subprocess error handling', () => {
     expect(promptMsg.images).toHaveLength(1)
     expect(promptMsg.images[0].type).toBe('image')
     expect(promptMsg.images[0].mimeType).toBe('image/png')
-    expect(promptMsg.images[0].data).toBe(attachments[0].base64)
+    expect(promptMsg.images[0].data).toBe(attachments[0]!.base64)
 
     agent.destroy()
   })

@@ -205,6 +205,35 @@ export class PiAgent extends BaseAgent {
     this.subprocessErrorRepeatCount = 0;
   }
 
+  // Ring buffer of recent subprocess stderr. Always on (independent of CRAFT_DEBUG)
+  // so that connection-test and other failures can surface what the subprocess
+  // actually said, instead of a bare "timed out" with no context.
+  private stderrBuffer: string[] = [];
+  private stderrBufferBytes = 0;
+  private static readonly STDERR_BUFFER_MAX_BYTES = 8 * 1024;
+
+  private recordStderr(chunk: string): void {
+    if (!chunk) return;
+    // If a single chunk is larger than the cap, keep only its tail so the
+    // buffer always holds the most-recent output even in pathological cases.
+    const effective = chunk.length > PiAgent.STDERR_BUFFER_MAX_BYTES
+      ? chunk.slice(chunk.length - PiAgent.STDERR_BUFFER_MAX_BYTES)
+      : chunk;
+    this.stderrBuffer.push(effective);
+    this.stderrBufferBytes += effective.length;
+    // Drop oldest chunks until we're back under the cap, but always keep at
+    // least one entry so a single-chunk tail survives.
+    while (this.stderrBufferBytes > PiAgent.STDERR_BUFFER_MAX_BYTES && this.stderrBuffer.length > 1) {
+      const dropped = this.stderrBuffer.shift()!;
+      this.stderrBufferBytes -= dropped.length;
+    }
+  }
+
+  /** Returns the most recent subprocess stderr output (up to ~8KB). Empty string if nothing captured. */
+  getRecentStderr(): string {
+    return this.stderrBuffer.join('');
+  }
+
   // Pending permission requests (used by handlePreToolUseRequest for ask-mode prompting)
   private pendingPermissions: Map<string, {
     resolve: (allowed: boolean) => void;
@@ -220,6 +249,14 @@ export class PiAgent extends BaseAgent {
   // Pending mini completions (correlation map for subprocess mini_completion_result)
   private pendingMiniCompletions: Map<string, {
     resolve: (text: string | null) => void;
+    reject: (error: Error) => void;
+  }> = new Map();
+
+  // Pending llm_query calls (correlation map for subprocess llm_query_result).
+  // Separate from pendingMiniCompletions because the payload shape differs:
+  // queryLlm returns a full LLMQueryResult, not just text.
+  private pendingLlmQueries: Map<string, {
+    resolve: (result: LLMQueryResult) => void;
     reject: (error: Error) => void;
   }> = new Map();
 
@@ -446,11 +483,15 @@ export class PiAgent extends BaseAgent {
       this.handleLine(line);
     });
 
-    // Forward stderr to debug log
+    // Always capture stderr into a bounded ring buffer so callers (e.g. the
+    // connection-test timeout path in factory.ts) can surface it on failure.
+    // Keep the CRAFT_DEBUG-gated log for interactive dev work.
     child.stderr?.on('data', (data: Buffer) => {
-      const text = data.toString().trim();
-      if (text) {
-        this.debug(`[subprocess stderr] ${text}`);
+      const text = data.toString();
+      this.recordStderr(text);
+      const trimmed = text.trim();
+      if (trimmed) {
+        this.debug(`[subprocess stderr] ${trimmed}`);
       }
     });
 
@@ -565,7 +606,7 @@ export class PiAgent extends BaseAgent {
     provider: string;
     credential:
       | { type: 'api_key'; key: string }
-      | { type: 'oauth'; access: string; refresh: string; expires: number; projectId?: string }
+      | { type: 'oauth'; access: string; refresh: string; expires: number }
       | { type: 'iam'; accessKeyId: string; secretAccessKey: string; region?: string; sessionToken?: string }
   } | null> {
     const piAuthProvider = getBackendRuntime(this.config).piAuthProvider;
@@ -578,21 +619,19 @@ export class PiAgent extends BaseAgent {
       if (this.config.authType === 'oauth') {
         const oauth = await credentialManager.getLlmOAuth(slug);
         if (oauth?.accessToken) {
-          // Copilot and Gemini CLI: pass full OAuth credential so the Pi SDK can
-          // handle token refresh and endpoint derivation internally.
-          // The refresh token is the persistent grant used to obtain fresh
-          // access tokens when they expire.
-          const isOAuthPiProvider = piAuthProvider === 'github-copilot' || piAuthProvider === 'google-gemini-cli' || piAuthProvider === 'gemini-pro-sub';
-          if (isOAuthPiProvider && oauth.refreshToken) {
-            this.debug(`Retrieved OAuth credential for Pi provider: ${piAuthProvider}`);
+          // Copilot: pass full OAuth credential so the Pi SDK can derive the
+          // correct API endpoint from the Copilot token's proxy-ep field.
+          // The refresh token is the GitHub access token used to obtain fresh
+          // Copilot tokens when they expire (~1 hour).
+          if (piAuthProvider === 'github-copilot' && oauth.refreshToken) {
+            this.debug(`Retrieved Copilot OAuth credential for Pi provider: ${piAuthProvider}`);
             return {
-              provider: piAuthProvider === 'gemini-pro-sub' ? 'google' : piAuthProvider,
+              provider: piAuthProvider,
               credential: {
                 type: 'oauth',
                 access: oauth.accessToken,
                 refresh: oauth.refreshToken,
                 expires: oauth.expiresAt ?? 0,
-                projectId: oauth.projectId,
               },
             };
           }
@@ -727,16 +766,6 @@ export class PiAgent extends BaseAgent {
             accessToken: newCreds.access,
             refreshToken: newCreds.refresh,
             expiresAt: newCreds.expires,
-          });
-        } else if (piAuthProvider === 'google-gemini-cli' || piAuthProvider === 'gemini-pro-sub') {
-          // Gemini CLI & Pro: refresh the Google OAuth access token
-          const { refreshGeminiCliToken } = await import('@mariozechner/pi-ai/oauth');
-          const newCreds = await refreshGeminiCliToken(stored.refreshToken);
-          await credentialManager.setLlmOAuth(slug, {
-            accessToken: newCreds.access,
-            refreshToken: newCreds.refresh,
-            expiresAt: newCreds.expires,
-            projectId: (newCreds as any).projectId || stored.idToken, // Use new ID if provided, else keep existing
           });
         } else {
           // ChatGPT Plus: use existing refresh utility
@@ -889,6 +918,23 @@ export class PiAgent extends BaseAgent {
         this.handleMiniCompletionResult(msg);
         break;
 
+      case 'llm_query_result': {
+        // Response to an llm_query request
+        const id = msg.id as string;
+        const pending = this.pendingLlmQueries.get(id);
+        if (pending) {
+          this.pendingLlmQueries.delete(id);
+          const result = msg.result as LLMQueryResult | null;
+          if (result) {
+            pending.resolve(result);
+          } else {
+            const errorMessage = typeof msg.errorMessage === 'string' ? msg.errorMessage : 'llm_query failed';
+            pending.reject(new Error(errorMessage));
+          }
+        }
+        break;
+      }
+
       case 'ensure_session_ready_result':
         // Response to an ensure_session_ready request
         this.handleEnsureSessionReadyResult(msg);
@@ -942,8 +988,18 @@ export class PiAgent extends BaseAgent {
           this.pendingMiniCompletions.delete(id);
         }
 
-        if (errorCode === 'mini_completion_error') {
-          this.debug('Ignoring mini completion subprocess error in chat stream');
+        // Same treatment for pending llm_query calls. llm_query_error is also an
+        // internal utility-path code (call_llm): the dual-emit from the subprocess
+        // means a targeted `llm_query_result` is sent alongside this generic `error`
+        // to reject the specific pending promise — this loop is the defensive cleanup
+        // for queries that never got a targeted result (subprocess crash, etc.).
+        for (const [id, pending] of this.pendingLlmQueries) {
+          pending.reject(new Error(rawMessage));
+          this.pendingLlmQueries.delete(id);
+        }
+
+        if (errorCode === 'mini_completion_error' || errorCode === 'llm_query_error') {
+          this.debug(`Ignoring ${errorCode} subprocess error in chat stream`);
           break;
         }
 
@@ -1597,19 +1653,12 @@ export class PiAgent extends BaseAgent {
     this.subprocessReady = null;
     this.subprocessReadyResolve = null;
 
-    // If we were processing, emit typed_error so SessionManager can retry
+    // If we were processing, emit error + complete
     if (this._isProcessing) {
       const exitReason = signal ? `signal ${signal}` : `code ${code}`;
       this.eventQueue.enqueue({
-        type: 'typed_error',
-        error: {
-          code: 'subprocess_dead',
-          title: 'Reconnecting…',
-          message: `Pi subprocess disconnected (${exitReason}), reconnecting…`,
-          canRetry: true,
-          actions: [],
-          details: [],
-        },
+        type: 'error',
+        message: `Pi subprocess exited unexpectedly (${exitReason})`,
       });
       this.eventQueue.complete();
     }
@@ -1621,6 +1670,12 @@ export class PiAgent extends BaseAgent {
       pending.reject(new Error(`Pi subprocess exited unexpectedly (${exitReason})`));
     }
     this.pendingMiniCompletions.clear();
+
+    // Reject pending llm_query calls (call_llm in-flight during subprocess crash)
+    for (const [, pending] of this.pendingLlmQueries) {
+      pending.reject(new Error(`Pi subprocess exited unexpectedly (${exitReason})`));
+    }
+    this.pendingLlmQueries.clear();
 
     // Reject pending ensure_session_ready requests
     for (const [, pending] of this.pendingEnsureSessionReady) {
@@ -1687,7 +1742,10 @@ export class PiAgent extends BaseAgent {
     await this.ensureSubprocess();
 
     const id = `compact-${++this.rpcIdCounter}`;
-    const timeoutMs = 60_000;
+    // GPT-backed Pi compactions on large conversations can legitimately take 60-120s
+    // (single blocking OpenAI summary call, no progress stream). 5 min covers realistic
+    // cases; truly hung subprocesses are caught by the stdio death watchdog.
+    const timeoutMs = 300_000;
 
     return new Promise<{ summary: string; firstKeptEntryId: string; tokensBefore: number } | null>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -1918,8 +1976,28 @@ export class PiAgent extends BaseAgent {
         images: images.length > 0 ? images : undefined,
       });
 
-      // Yield events as they arrive
-      yield* this.eventQueue.drain();
+      // Yield events as they arrive. After each tool_result, check whether
+      // a session-scoped tool (source_test) activated a new source — if so,
+      // yield source_activated and force-abort the turn for auto-retry.
+      // Mirrors the same check in ClaudeAgent.chatImpl; Pi's subprocess only
+      // picks up new proxy tools on the next handlePrompt, so the restart
+      // is needed here too.
+      for await (const event of this.eventQueue.drain()) {
+        yield event;
+        if (event.type === 'tool_result') {
+          const pendingRestart = this.consumePendingSourceActivationRestart();
+          if (pendingRestart) {
+            this.debug(`source_test activated "${pendingRestart.sourceSlug}", interrupting turn for auto-retry`);
+            yield {
+              type: 'source_activated' as const,
+              sourceSlug: pendingRestart.sourceSlug,
+              originalMessage: pendingRestart.userMessage,
+            };
+            this.forceAbort(AbortReason.SourceActivated);
+            return;
+          }
+        }
+      }
     } catch (error) {
       if (error instanceof Error && error.message.includes('abort')) {
         if (this.abortReason === AbortReason.PlanSubmitted) {
@@ -2197,15 +2275,36 @@ export class PiAgent extends BaseAgent {
   /**
    * Execute an LLM query via the subprocess.
    * Used by session-scoped tool callbacks (call_llm).
+   *
+   * Sends the full LLMQueryRequest over the `llm_query` RPC so the subprocess's
+   * model-aware queryLlm() can honor `request.model`, `request.systemPrompt`,
+   * and (transitively via buildCallLlmRequest) `request.outputSchema`.
+   * See packages/shared/CLAUDE.md → "queryLlm backend contract" and
+   * packages/pi-agent-server/src/index.ts → handleLlmQuery for the invariant.
    */
   async queryLlm(request: LLMQueryRequest): Promise<LLMQueryResult> {
     this.debug('[PiAgent.queryLlm] Starting');
 
-    const text = await this.runMiniCompletion(request.prompt);
-    return {
-      text: text || '',
-      model: request.model || this.config.miniModel || '',
-    };
+    await this.ensureSubprocess();
+
+    const id = `llm-${++this.rpcIdCounter}`;
+    const resultPromise = new Promise<LLMQueryResult>((resolve, reject) => {
+      this.pendingLlmQueries.set(id, { resolve, reject });
+    });
+
+    this.send({ type: 'llm_query', id, request });
+
+    // Keep this aligned with the subprocess-side queryLlm timeout.
+    const timeout = new Promise<LLMQueryResult>((_, reject) => {
+      setTimeout(() => {
+        if (this.pendingLlmQueries.has(id)) {
+          this.pendingLlmQueries.delete(id);
+          reject(new Error(`queryLlm timed out after ${LLM_QUERY_TIMEOUT_MS / 1000}s`));
+        }
+      }, LLM_QUERY_TIMEOUT_MS);
+    });
+
+    return Promise.race([resultPromise, timeout]);
   }
 
   // ============================================================
