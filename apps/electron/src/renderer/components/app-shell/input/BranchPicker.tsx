@@ -37,8 +37,10 @@ export function BranchPicker({
   const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
   const [filter, setFilter] = React.useState('')
+  const [createName, setCreateName] = React.useState('')
   const [isCreating, setIsCreating] = React.useState(false)
-  const inputRef = React.useRef<HTMLInputElement>(null)
+  const filterRef = React.useRef<HTMLInputElement>(null)
+  const createRef = React.useRef<HTMLInputElement>(null)
 
   const hasBranch = !!branch
   const displayBranch = branch ?? t('chat.noBranch')
@@ -46,15 +48,21 @@ export function BranchPicker({
 
   // Focus input when popover opens
   React.useEffect(() => {
-    if (open && showFilter) {
-      const timer = setTimeout(() => inputRef.current?.focus(), 0)
+    if (open) {
+      const timer = setTimeout(() => {
+        if (showFilter) filterRef.current?.focus()
+        else createRef.current?.focus()
+      }, 0)
       return () => clearTimeout(timer)
     }
   }, [open, showFilter])
 
-  // Reset filter when popover closes
+  // Reset inputs when popover closes
   React.useEffect(() => {
-    if (!open) setFilter('')
+    if (!open) {
+      setFilter('')
+      setCreateName('')
+    }
   }, [open])
 
   const handleSelect = React.useCallback(
@@ -75,20 +83,24 @@ export function BranchPicker({
     [branch, onCheckout, t],
   )
 
-  const handleCreate = React.useCallback(async () => {
-    const name = filter.trim()
-    if (!name) return
+  const handleCreate = React.useCallback(async (name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    if (branches.some((b) => b.name === trimmed)) {
+      toast.error(t('git.branchAlreadyExists', { branch: trimmed }))
+      return
+    }
     setIsCreating(true)
-    const result = await onCreate(name)
+    const result = await onCreate(trimmed)
     setIsCreating(false)
     if (result.success) {
-      toast.success(t('git.createdBranch', { branch: name }))
-      setFilter('')
+      toast.success(t('git.createdBranch', { branch: trimmed }))
+      setCreateName('')
       setOpen(false)
     } else {
       toast.error(result.error || t('git.createFailed'))
     }
-  }, [filter, onCreate, t])
+  }, [branches, onCreate, t])
 
   // If not a git repo, show disabled state
   if (!cwd || !isRepo) {
@@ -108,7 +120,8 @@ export function BranchPicker({
   const filtered = branches.filter((b) => b.name.toLowerCase().includes(filter.toLowerCase()))
   const currentBranch = branches.find((b) => b.current)
   const otherBranches = filtered.filter((b) => !b.current)
-  const canCreate = filter.trim().length > 0 && !branches.some((b) => b.name === filter.trim())
+  const createTrimmed = createName.trim()
+  const canCreate = createTrimmed.length > 0 && !branches.some((b) => b.name === createTrimmed)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -136,7 +149,7 @@ export function BranchPicker({
         {showFilter && (
           <div className="border-b border-border/50 px-3 py-2">
             <input
-              ref={inputRef}
+              ref={filterRef}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder={t('git.filterBranches')}
@@ -191,25 +204,34 @@ export function BranchPicker({
         </div>
 
         {/* Create new branch */}
-        {canCreate && (
-          <div className="border-t border-border/50 p-1">
-            <button
-              type="button"
-              onClick={handleCreate}
+        <div className="border-t border-border/50 px-2 py-1.5">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (canCreate) handleCreate(createName)
+            }}
+            className="flex items-center gap-1.5"
+          >
+            <Plus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <input
+              ref={createRef}
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder={t('git.createBranchPlaceholder')}
               disabled={isCreating}
-              className={cn(
-                MENU_ITEM_STYLE,
-                'w-full text-left text-muted-foreground hover:text-foreground hover:bg-foreground/5',
-                isCreating && 'opacity-50 pointer-events-none',
-              )}
-            >
-              <Plus className="h-4 w-4 shrink-0" />
-              <span className="flex-1 min-w-0 truncate">
-                {t('git.createBranch')}: <span className="text-foreground font-medium">{filter.trim()}</span>
-              </span>
-            </button>
-          </div>
-        )}
+              className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 placeholder:select-none disabled:opacity-50"
+            />
+            {canCreate && (
+              <button
+                type="submit"
+                disabled={isCreating}
+                className="shrink-0 px-2 py-0.5 text-xs font-medium rounded-[4px] bg-foreground/10 hover:bg-foreground/15 text-foreground transition-colors disabled:opacity-50"
+              >
+                {isCreating ? <Loader2 className="h-3 w-3 animate-spin" /> : t('git.create')}
+              </button>
+            )}
+          </form>
+        </div>
       </PopoverContent>
     </Popover>
   )
