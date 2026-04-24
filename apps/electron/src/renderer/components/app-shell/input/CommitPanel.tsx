@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import type { GitDetailedStatus } from '@/hooks/useGit'
 
 const MENU_CONTAINER_STYLE =
-  'max-w-[520px] overflow-hidden rounded-[8px] bg-background text-foreground shadow-modal-small p-0'
+  'sm:max-w-xl max-w-[calc(100%-2rem)] overflow-hidden rounded-[8px] bg-background text-foreground shadow-modal-small p-0'
 
 interface CommitPanelProps {
   open: boolean
@@ -99,7 +99,7 @@ export function CommitPanel({ open, onOpenChange, status, commit, diff, committi
             {t('git.noChangesToCommit')}
           </div>
         ) : (
-          <div className="flex flex-col max-h-[60vh]">
+          <div className="flex flex-col max-h-[75vh]">
             {/* Header */}
             <div className="px-4 pb-2 border-b border-border/50 flex items-center justify-between">
               <span className="text-sm font-medium">{t('git.changes')}</span>
@@ -114,7 +114,7 @@ export function CommitPanel({ open, onOpenChange, status, commit, diff, committi
             </div>
 
             {/* File list */}
-            <div className="max-h-[160px] overflow-y-auto p-1 space-y-px">
+            <div className="max-h-[280px] overflow-y-auto p-1 space-y-px">
               {allFiles.map((file) => (
                 <button
                   key={file.path}
@@ -145,7 +145,7 @@ export function CommitPanel({ open, onOpenChange, status, commit, diff, committi
                 <div className="px-3 py-1 text-xs text-muted-foreground bg-foreground/[0.02]">
                   {selectedFile}
                 </div>
-                <div className="max-h-[120px] overflow-y-auto px-3 py-2 text-xs font-mono bg-foreground/[0.02]">
+                <div className="max-h-[200px] overflow-y-auto px-3 py-2 text-xs font-mono bg-foreground/[0.02]">
                   {diffLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   ) : diffText ? (

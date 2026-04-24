@@ -1729,7 +1729,7 @@ export function FreeFormInput({
             sessionId={sessionId}
           />
 
-          <div className={cn("flex items-center gap-1 px-2 py-2", !compactMode && "border-t border-border/50")}>
+          <div className={cn("px-2 py-2", compactMode ? "flex items-center gap-1" : "flex flex-col border-t border-border/50 gap-1")}>
           {/* Hidden file input for attach button (shared by compact and desktop) */}
           <input
             ref={fileInputRef}
@@ -1739,6 +1739,8 @@ export function FreeFormInput({
             onChange={handleFileInputChange}
           />
 
+          {/* Row 1: Primary controls */}
+          <div className="flex items-center gap-1">
           {/* Compact mode: permission mode drawer + standard icon badges for attach/sources/working dir */}
           {compactMode && (
           <>
@@ -1842,6 +1844,7 @@ export function FreeFormInput({
               workspaceId={workspaceId}
             />
           )}
+          <GitToolbar workingDirectory={workingDirectory} />
           </>
           )}
 
@@ -2213,7 +2216,14 @@ export function FreeFormInput({
           )}
           </div>
           </div>
+          {/* Row 2: Git tools (desktop only) */}
+          {!compactMode && (
+            <div className="flex items-center gap-1">
+              <GitToolbar workingDirectory={workingDirectory} />
+            </div>
+          )}
         </div>
+      </div>
       </div>
     </form>
   )
@@ -2256,8 +2266,6 @@ function WorkingDirectoryBadge({
   const [popoverOpen, setPopoverOpen] = React.useState(false)
   const [homeDir, setHomeDir] = React.useState<string>('')
   const [filter, setFilter] = React.useState('')
-  const [commitPanelOpen, setCommitPanelOpen] = React.useState(false)
-  const git = useGit(workingDirectory)
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   // Load home directory and recent directories on mount
@@ -2458,33 +2466,6 @@ function WorkingDirectoryBadge({
         </CommandPrimitive>
       </PopoverContent>
     </Popover>
-    <BranchPicker
-      cwd={workingDirectory}
-      branch={git.branch}
-      branches={git.branches}
-      isRepo={git.isRepo}
-      isClean={git.isClean}
-      loading={git.loading}
-      onCheckout={git.checkoutBranch}
-      onCreate={git.createBranch}
-    />
-    {git.isRepo && (
-      <>
-        <GitStatusBadge
-          status={git.detailedStatus}
-          loading={git.statusLoading}
-          onClick={() => setCommitPanelOpen(true)}
-        />
-        <CommitPanel
-          open={commitPanelOpen}
-          onOpenChange={setCommitPanelOpen}
-          status={git.detailedStatus}
-          commit={git.commit}
-          diff={git.diff}
-          committing={git.committing}
-        />
-      </>
-    )}
     <ServerDirectoryBrowser
       open={showServerBrowser}
       mode={serverBrowserMode}
@@ -2492,6 +2473,51 @@ function WorkingDirectoryBadge({
       onCancel={cancelServerBrowser}
       initialPath={workingDirectory}
     />
+    </>
+  )
+}
+
+/**
+ * GitToolbar - Branch picker, git status badge, and commit panel
+ * Separated from WorkingDirectoryBadge for layout flexibility
+ */
+function GitToolbar({
+  workingDirectory,
+}: {
+  workingDirectory?: string
+}) {
+  const git = useGit(workingDirectory)
+  const [commitPanelOpen, setCommitPanelOpen] = React.useState(false)
+
+  return (
+    <>
+      <BranchPicker
+        cwd={workingDirectory}
+        branch={git.branch}
+        branches={git.branches}
+        isRepo={git.isRepo}
+        isClean={git.isClean}
+        loading={git.loading}
+        onCheckout={git.checkoutBranch}
+        onCreate={git.createBranch}
+      />
+      {git.isRepo && (
+        <>
+          <GitStatusBadge
+            status={git.detailedStatus}
+            loading={git.statusLoading}
+            onClick={() => setCommitPanelOpen(true)}
+          />
+          <CommitPanel
+            open={commitPanelOpen}
+            onOpenChange={setCommitPanelOpen}
+            status={git.detailedStatus}
+            commit={git.commit}
+            diff={git.diff}
+            committing={git.committing}
+          />
+        </>
+      )}
     </>
   )
 }
