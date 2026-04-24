@@ -592,6 +592,10 @@ export interface ElectronAPI {
 
   // Git operations
   getGitBranch(dirPath: string): Promise<string | null>
+  listGitBranches(dirPath: string): Promise<{ branches: Array<{ name: string; current: boolean }>; isRepo: boolean }>
+  checkoutGitBranch(dirPath: string, branchName: string): Promise<{ success: boolean; error?: string }>
+  createGitBranch(dirPath: string, branchName: string): Promise<{ success: boolean; error?: string }>
+  getGitStatus(dirPath: string): Promise<{ branch: string | null; isClean: boolean; isRepo: boolean }>
 
   // Git Bash (Windows)
   checkGitBash(): Promise<GitBashStatus>

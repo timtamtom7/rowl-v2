@@ -64,6 +64,8 @@ import { SourceAvatar } from '@/components/ui/source-avatar'
 import { SourceSelectorPopover } from '@/components/ui/SourceSelectorPopover'
 import { ConnectionIcon } from '@/components/icons/ConnectionIcon'
 import { FreeFormInputContextBadge } from './FreeFormInputContextBadge'
+import { BranchPicker } from './BranchPicker'
+import { useGitBranch } from '@/hooks/useGitBranch'
 import type { FileAttachment, LoadedSource, LoadedSkill } from '../../../../shared/types'
 import type { PermissionMode } from '@craft-agent/shared/agent/modes'
 import { type ThinkingLevel, THINKING_LEVELS, getThinkingLevelNameKey } from '@craft-agent/shared/agent/thinking-levels'
@@ -2292,8 +2294,8 @@ function WorkingDirectoryBadge({
   const [recentDirs, setRecentDirs] = React.useState<string[]>([])
   const [popoverOpen, setPopoverOpen] = React.useState(false)
   const [homeDir, setHomeDir] = React.useState<string>('')
-  const [gitBranch, setGitBranch] = React.useState<string | null>(null)
   const [filter, setFilter] = React.useState('')
+  const git = useGitBranch(workingDirectory)
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   // Load home directory and recent directories on mount
@@ -2304,16 +2306,7 @@ function WorkingDirectoryBadge({
     })
   }, [workspaceId])
 
-  // Fetch git branch when working directory changes
-  React.useEffect(() => {
-    if (workingDirectory) {
-      window.electronAPI?.getGitBranch?.(workingDirectory).then((branch: string | null) => {
-        setGitBranch(branch)
-      })
-    } else {
-      setGitBranch(null)
-    }
-  }, [workingDirectory])
+  // Git branch state is managed by useGitBranch hook
 
   // Reset filter, refresh history, and focus input when popover opens
   React.useEffect(() => {
@@ -2404,7 +2397,6 @@ function WorkingDirectoryBadge({
                 <span className="flex flex-col gap-0.5">
                   <span className="font-medium">{t("chat.workingDirectory")}</span>
                   <span className="text-xs opacity-70">{formatPathForDisplay(workingDirectory, homeDir)}</span>
-                  {gitBranch && <span className="text-xs opacity-70">{t("chat.onBranch", { branch: gitBranch })}</span>}
                 </span>
               ) : t("chat.chooseWorkingDirectory")
             }
@@ -2504,6 +2496,16 @@ function WorkingDirectoryBadge({
         </CommandPrimitive>
       </PopoverContent>
     </Popover>
+    <BranchPicker
+      cwd={workingDirectory}
+      branch={git.branch}
+      branches={git.branches}
+      isRepo={git.isRepo}
+      isClean={git.isClean}
+      loading={git.loading}
+      onCheckout={git.checkoutBranch}
+      onCreate={git.createBranch}
+    />
     <ServerDirectoryBrowser
       open={showServerBrowser}
       mode={serverBrowserMode}

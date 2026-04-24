@@ -337,6 +337,10 @@ export const RPC_CHANNELS = {
   },
   git: {
     GET_BRANCH: 'git:getBranch',
+    LIST_BRANCHES: 'git:listBranches',
+    CHECKOUT_BRANCH: 'git:checkoutBranch',
+    CREATE_BRANCH: 'git:createBranch',
+    GET_STATUS: 'git:getStatus',
   },
   gitbash: {
     CHECK: 'gitbash:check',

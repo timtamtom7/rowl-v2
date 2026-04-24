@@ -27,6 +27,10 @@ export const CORE_HANDLED_CHANNELS = [
   RPC_CHANNELS.releaseNotes.GET,
   RPC_CHANNELS.releaseNotes.GET_LATEST_VERSION,
   RPC_CHANNELS.git.GET_BRANCH,
+  RPC_CHANNELS.git.LIST_BRANCHES,
+  RPC_CHANNELS.git.CHECKOUT_BRANCH,
+  RPC_CHANNELS.git.CREATE_BRANCH,
+  RPC_CHANNELS.git.GET_STATUS,
   RPC_CHANNELS.gitbash.CHECK,
   RPC_CHANNELS.gitbash.BROWSE,
   RPC_CHANNELS.gitbash.SET_PATH,
@@ -191,6 +195,55 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
     } catch {
       return null
     }
+  })
+
+  // List branches for a directory (returns { branches: [{ name, current }], isRepo: boolean })
+  server.handle(RPC_CHANNELS.git.LIST_BRANCHES, async (_ctx, dirPath: string) => {
+    try {
+      execSync('git rev-parse --git-dir', { cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 5000 })
+      const output = execSync('git branch --list --format="%(refname:short)\t%(HEAD)"', {
+        cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 5000,
+      }).trim()
+      const branches = output.split('\n').filter(Boolean).map((line) => {
+        const [name, head] = line.split('\t')
+        return { name: name.trim(), current: head.trim() === '*' }
+      }).sort((a, b) => (a.current ? -1 : b.current ? 1 : a.name.localeCompare(b.name)))
+      return { branches, isRepo: true }
+    } catch { return { branches: [], isRepo: false } }
+  })
+
+  // Checkout an existing branch
+  server.handle(RPC_CHANNELS.git.CHECKOUT_BRANCH, async (_ctx, dirPath: string, branchName: string) => {
+    try {
+      execSync(`git checkout ${branchName}`, { cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 15000 })
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error?.stderr?.toString?.() || error?.message || 'Unknown error' }
+    }
+  })
+
+  // Create and checkout a new branch
+  server.handle(RPC_CHANNELS.git.CREATE_BRANCH, async (_ctx, dirPath: string, branchName: string) => {
+    try {
+      execSync(`git checkout -b ${branchName}`, { cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 15000 })
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error?.stderr?.toString?.() || error?.message || 'Unknown error' }
+    }
+  })
+
+  // Get git status summary
+  server.handle(RPC_CHANNELS.git.GET_STATUS, async (_ctx, dirPath: string) => {
+    try {
+      execSync('git rev-parse --git-dir', { cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 5000 })
+      const branch = execSync('git rev-parse --abbrev-ref HEAD', {
+        cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 5000,
+      }).trim()
+      const isClean = execSync('git status --porcelain', {
+        cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 5000,
+      }).trim() === ''
+      return { branch, isClean, isRepo: true }
+    } catch { return { branch: null, isClean: true, isRepo: false } }
   })
 
   // Git Bash detection and configuration (Windows only)
