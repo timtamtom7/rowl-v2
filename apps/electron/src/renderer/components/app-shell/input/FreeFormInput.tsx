@@ -66,7 +66,9 @@ import { ConnectionIcon } from '@/components/icons/ConnectionIcon'
 import { FreeFormInputContextBadge } from './FreeFormInputContextBadge'
 import { BranchPicker } from './BranchPicker'
 import { ContextWindowIndicator } from './ContextWindowIndicator'
-import { useGitBranch } from '@/hooks/useGitBranch'
+import { GitStatusBadge } from './GitStatusBadge'
+import { CommitPanel } from './CommitPanel'
+import { useGit } from '@/hooks/useGit'
 import type { FileAttachment, LoadedSource, LoadedSkill } from '../../../../shared/types'
 import type { PermissionMode } from '@craft-agent/shared/agent/modes'
 import { type ThinkingLevel, THINKING_LEVELS, getThinkingLevelNameKey } from '@craft-agent/shared/agent/thinking-levels'
@@ -2182,7 +2184,26 @@ export function FreeFormInput({
           </DropdownMenu>
           )}
 
-          {/* 5.5 Context Window Indicator - always visible when we have token data */}
+          {/* 5.5 Git Status Badge + Commit Panel */}
+          {git.isRepo && (
+            <>
+              <GitStatusBadge
+                status={git.detailedStatus}
+                loading={git.statusLoading}
+                onClick={() => setCommitPanelOpen(true)}
+              />
+              <CommitPanel
+                open={commitPanelOpen}
+                onOpenChange={setCommitPanelOpen}
+                status={git.detailedStatus}
+                commit={git.commit}
+                diff={git.diff}
+                committing={git.committing}
+              />
+            </>
+          )}
+
+          {/* 5.6 Context Window Indicator - always visible when we have token data */}
           <ContextWindowIndicator
             inputTokens={contextStatus?.inputTokens}
             contextWindow={contextStatus?.contextWindow || getModelContextWindow(currentModel)}
@@ -2260,7 +2281,8 @@ function WorkingDirectoryBadge({
   const [popoverOpen, setPopoverOpen] = React.useState(false)
   const [homeDir, setHomeDir] = React.useState<string>('')
   const [filter, setFilter] = React.useState('')
-  const git = useGitBranch(workingDirectory)
+  const git = useGit(workingDirectory)
+  const [commitPanelOpen, setCommitPanelOpen] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   // Load home directory and recent directories on mount
@@ -2271,7 +2293,7 @@ function WorkingDirectoryBadge({
     })
   }, [workspaceId])
 
-  // Git branch state is managed by useGitBranch hook
+  // Git state is managed by useGit hook
 
   // Reset filter, refresh history, and focus input when popover opens
   React.useEffect(() => {

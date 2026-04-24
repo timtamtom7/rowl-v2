@@ -397,6 +397,9 @@ export const REMOTE_ELIGIBLE_CHANNELS = new Set<string>([
   RPC_CHANNELS.git.CHECKOUT_BRANCH,
   RPC_CHANNELS.git.CREATE_BRANCH,
   RPC_CHANNELS.git.GET_STATUS,
+  RPC_CHANNELS.git.GET_DETAILED_STATUS,
+  RPC_CHANNELS.git.COMMIT,
+  RPC_CHANNELS.git.DIFF,
 
   // resources — workspace resource export/import
   RPC_CHANNELS.resources.EXPORT,

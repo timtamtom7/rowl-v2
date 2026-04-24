@@ -26,10 +26,11 @@
   "dependencies": {
     "@craft-agent/core": "workspace:*",
     "@craft-agent/shared": "workspace:*",
+    "@mariozechner/pi-ai": "0.66.1",
     "jose": "^6.0.0",
-    "ws": "^8.19.0",
     "sharp": "0.34.5",
-    "@mariozechner/pi-ai": "0.66.1"
+    "simple-git": "^3.36.0",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "typescript": "^5.8.2",

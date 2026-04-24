@@ -2,6 +2,7 @@ import { resolve } from 'path'
 import { join } from 'path'
 import { homedir } from 'os'
 import { execSync } from 'child_process'
+import { simpleGit } from 'simple-git'
 import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
 import { getWorkspaceByNameOrId, getGitBashPath, setGitBashPath, clearGitBashPath } from '@craft-agent/shared/config'
 import { isUsableGitBashPath, validateGitBashPath } from '@craft-agent/server-core/services'
@@ -182,16 +183,14 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
     return getLatestReleaseVersion()
   })
 
+  // Git helpers using simple-git
+  const git = (dirPath: string) => simpleGit(dirPath)
+
   // Get git branch for a directory (returns null if not a git repo or git unavailable)
   server.handle(RPC_CHANNELS.git.GET_BRANCH, async (_ctx, dirPath: string) => {
     try {
-      const branch = execSync('git rev-parse --abbrev-ref HEAD', {
-        cwd: dirPath,
-        encoding: 'utf-8',
-        stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 5000,
-      }).trim()
-      return branch || null
+      const branch = await git(dirPath).revparse(['--abbrev-ref', 'HEAD'])
+      return branch.trim() || null
     } catch {
       return null
     }
@@ -200,14 +199,11 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
   // List branches for a directory (returns { branches: [{ name, current }], isRepo: boolean })
   server.handle(RPC_CHANNELS.git.LIST_BRANCHES, async (_ctx, dirPath: string) => {
     try {
-      execSync('git rev-parse --git-dir', { cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 5000 })
-      const output = execSync('git branch --list --format="%(refname:short)\t%(HEAD)"', {
-        cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 5000,
-      }).trim()
-      const branches = output.split('\n').filter(Boolean).map((line) => {
-        const [name, head] = line.split('\t')
-        return { name: name.trim(), current: head.trim() === '*' }
-      }).sort((a, b) => (a.current ? -1 : b.current ? 1 : a.name.localeCompare(b.name)))
+      const result = await git(dirPath).branchLocal()
+      const branches = Object.values(result.branches).map((b) => ({
+        name: b.name,
+        current: b.current,
+      })).sort((a, b) => (a.current ? -1 : b.current ? 1 : a.name.localeCompare(b.name)))
       return { branches, isRepo: true }
     } catch { return { branches: [], isRepo: false } }
   })
@@ -215,35 +211,72 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
   // Checkout an existing branch
   server.handle(RPC_CHANNELS.git.CHECKOUT_BRANCH, async (_ctx, dirPath: string, branchName: string) => {
     try {
-      execSync(`git checkout ${branchName}`, { cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 15000 })
+      await git(dirPath).checkout(branchName)
       return { success: true }
     } catch (error: any) {
-      return { success: false, error: error?.stderr?.toString?.() || error?.message || 'Unknown error' }
+      return { success: false, error: error?.message || 'Unknown error' }
     }
   })
 
   // Create and checkout a new branch
   server.handle(RPC_CHANNELS.git.CREATE_BRANCH, async (_ctx, dirPath: string, branchName: string) => {
     try {
-      execSync(`git checkout -b ${branchName}`, { cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 15000 })
+      await git(dirPath).checkoutLocalBranch(branchName)
       return { success: true }
     } catch (error: any) {
-      return { success: false, error: error?.stderr?.toString?.() || error?.message || 'Unknown error' }
+      return { success: false, error: error?.message || 'Unknown error' }
     }
   })
 
   // Get git status summary
   server.handle(RPC_CHANNELS.git.GET_STATUS, async (_ctx, dirPath: string) => {
     try {
-      execSync('git rev-parse --git-dir', { cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 5000 })
-      const branch = execSync('git rev-parse --abbrev-ref HEAD', {
-        cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 5000,
-      }).trim()
-      const isClean = execSync('git status --porcelain', {
-        cwd: dirPath, encoding: 'utf-8', stdio: 'pipe', timeout: 5000,
-      }).trim() === ''
-      return { branch, isClean, isRepo: true }
+      const status = await git(dirPath).status()
+      return { branch: status.current || null, isClean: status.isClean(), isRepo: true }
     } catch { return { branch: null, isClean: true, isRepo: false } }
+  })
+
+  // Get detailed git status (modified, staged, untracked, ahead/behind)
+  server.handle(RPC_CHANNELS.git.GET_DETAILED_STATUS, async (_ctx, dirPath: string) => {
+    try {
+      const status = await git(dirPath).status()
+      return {
+        branch: status.current || null,
+        ahead: status.ahead,
+        behind: status.behind,
+        modified: status.modified,
+        staged: status.staged,
+        untracked: status.not_added,
+        isClean: status.isClean(),
+        isRepo: true,
+      }
+    } catch {
+      return {
+        branch: null, ahead: 0, behind: 0,
+        modified: [], staged: [], untracked: [],
+        isClean: true, isRepo: false,
+      }
+    }
+  })
+
+  // Commit changes
+  server.handle(RPC_CHANNELS.git.COMMIT, async (_ctx, dirPath: string, message: string, files?: string[]) => {
+    try {
+      const result = await git(dirPath).commit(message, files)
+      return { success: true, commitSha: result.commit }
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Commit failed' }
+    }
+  })
+
+  // Get diff for a file
+  server.handle(RPC_CHANNELS.git.DIFF, async (_ctx, dirPath: string, filePath?: string) => {
+    try {
+      const diff = await git(dirPath).diff(['--', filePath || '.'])
+      return { diff: diff || '' }
+    } catch (error: any) {
+      return { diff: '', error: error?.message || 'Diff failed' }
+    }
   })
 
   // Git Bash detection and configuration (Windows only)

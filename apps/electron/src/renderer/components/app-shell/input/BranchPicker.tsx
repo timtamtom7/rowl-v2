@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { FreeFormInputContextBadge } from './FreeFormInputContextBadge'
 import { cn } from '@/lib/utils'
-import type { GitBranch as GitBranchType } from '@/hooks/useGitBranch'
+import type { GitBranch as GitBranchType } from '@/hooks/useGit'
 
 const MENU_CONTAINER_STYLE =
   'min-w-[240px] max-w-[360px] overflow-hidden rounded-[8px] bg-background text-foreground shadow-modal-small p-0'
