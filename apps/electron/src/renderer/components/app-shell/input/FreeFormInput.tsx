@@ -640,6 +640,9 @@ export function FreeFormInput({
                 linkedPlanPaths: [...issue.linkedPlanPaths, rel],
                 updatedAt: new Date().toISOString(),
               })
+              // Sync localStorage so useIssues stays in sync
+              const list = await window.electronAPI.issues.list(workspaceId)
+              try { localStorage.setItem(`craft-agent-issues-v2:${workspaceId}`, JSON.stringify(list)) } catch {}
             }
           }
         } catch (err) {
@@ -698,6 +701,9 @@ export function FreeFormInput({
                 linkedPlanPaths: [...issue.linkedPlanPaths, rel],
                 updatedAt: new Date().toISOString(),
               })
+              // Sync localStorage so useIssues stays in sync
+              const list = await window.electronAPI.issues.list(workspaceId)
+              try { localStorage.setItem(`craft-agent-issues-v2:${workspaceId}`, JSON.stringify(list)) } catch {}
             }
           }
         } catch (err) {

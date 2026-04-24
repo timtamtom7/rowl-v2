@@ -247,6 +247,8 @@
   "git.filterBranches": "Filter branches...",
   "git.noBranchesFound": "No branches found",
   "git.createBranch": "Create branch",
+  "git.loadingBranches": "Loading branches...",
+  "git.noOtherBranches": "No other branches",
   "git.uncommittedChanges": "Uncommitted changes",
   "chatInput.placeholder.focusMode": "Press {{key}} + . for focus mode",
   "chatInput.placeholder.labels": "Type # to apply labels to this conversation",
