@@ -2181,15 +2181,6 @@ export function FreeFormInput({
           </DropdownMenu>
           )}
 
-          {/* 5.5 Context Window Indicator - always visible when we have token data */}
-          <ContextWindowIndicator
-            inputTokens={contextStatus?.inputTokens}
-            contextWindow={contextStatus?.contextWindow || getModelContextWindow(currentModel)}
-            isCompacting={contextStatus?.isCompacting}
-            isProcessing={isProcessing}
-            onCompact={!isProcessing ? () => onSubmit('/compact', []) : undefined}
-          />
-
           {/* 6. Send/Stop Button - Always show stop when processing */}
           {isProcessing ? (
             <Button
@@ -2216,10 +2207,18 @@ export function FreeFormInput({
           )}
           </div>
           </div>
-          {/* Row 2: Git tools (desktop only) */}
+          {/* Row 2: Git tools + Context (desktop only) */}
           {!compactMode && (
             <div className="flex items-center gap-1">
               <GitToolbar workingDirectory={workingDirectory} />
+              <div className="flex-1" />
+              <ContextWindowIndicator
+                inputTokens={contextStatus?.inputTokens}
+                contextWindow={contextStatus?.contextWindow || getModelContextWindow(currentModel)}
+                isCompacting={contextStatus?.isCompacting}
+                isProcessing={isProcessing}
+                onCompact={!isProcessing ? () => onSubmit('/compact', []) : undefined}
+              />
             </div>
           )}
         </div>
